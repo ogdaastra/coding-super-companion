@@ -126,14 +126,17 @@ void main()
         vec3 col;
         if (abs(kind - 1.0) < 0.5) {
             // Directory: dark metallic hub with a lit meridian lattice
+            // Directory hub: dark glass shell, a single lit equator band that tracks
+            // the camera-facing hemisphere, and a bright inner core.
             float lat = asin(clamp(nW.y, -1.0, 1.0)) / 3.14159265 + 0.5;
-            float lon = atan(nW.z, nW.x) / 6.2831853 + 0.5;
-            float lattice = max(gridLine(lat, 6.0), gridLine(lon, 12.0));
-            vec3 metal = vec3(0.020, 0.026, 0.036) + base * 0.015;
-            col = metal * (0.25 + ndl * 0.9) + vec3(0.75, 0.88, 1.0) * spec * 0.9;
-            col += base * fres * (0.55 + emissive * 0.8);
-            col += VIOLET * rim2 * 0.25;
-            col += actColor * lattice * (0.22 + emissive * 0.6);
+            float equator = gridLine(lat, 1.0) * 0.0 + (1.0 - smoothstep(0.0, fwidth(lat) * 1.6, abs(lat - 0.5)));
+            float bands = gridLine(lat, 4.0) * 0.35;
+            vec3 metal = vec3(0.016, 0.022, 0.034) + base * 0.012;
+            col = metal * (0.30 + ndl * 0.9) + vec3(0.75, 0.88, 1.0) * spec * 0.75;
+            col += base * fres * (0.75 + emissive * 0.9);
+            col += VIOLET * rim2 * 0.30;
+            col += actColor * (equator * 0.55 + bands * 0.12) * (0.4 + emissive);
+            col += actColor * innerCore * (0.10 + emissive * 0.5);
         } else if (abs(kind - 4.0) < 0.5) {
             // Nucleus: layered luminous plasma whose turbulence follows agent activity
             float act = fr.params.x;
