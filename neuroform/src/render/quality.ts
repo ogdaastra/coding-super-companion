@@ -71,26 +71,31 @@ export class AdaptiveQuality {
     return this.enabled && this.level > 0;
   }
 
-  /** Feeds one frame duration. Returns true if the level changed. */
+  /**
+   * Feeds one frame duration. Slow or fast time is accumulated in milliseconds,
+   * so the reaction time is the same on a 10 FPS and a 120 FPS device: about
+   * 2.5 s of slow frames steps detail down, 10 s of fast frames steps it up.
+   */
   sample(frameMs: number): boolean {
     if (!this.enabled) return false;
-    this.avg = this.avg * 0.9 + Math.min(frameMs, 200) * 0.1;
+    const ms = Math.min(frameMs, 250);
+    this.avg = this.avg * 0.9 + ms * 0.1;
     if (this.avg > this.targetMs * 1.25) {
-      this.slow++;
+      this.slow += ms;
       this.fast = 0;
     } else if (this.avg < this.targetMs * 0.6) {
-      this.fast++;
+      this.fast += ms;
       this.slow = 0;
     } else {
-      this.slow = Math.max(0, this.slow - 1);
-      this.fast = Math.max(0, this.fast - 1);
+      this.slow = Math.max(0, this.slow - ms);
+      this.fast = Math.max(0, this.fast - ms);
     }
-    if (this.slow > 90 && this.level < LEVELS.length - 1) {
+    if (this.slow > 2500 && this.level < LEVELS.length - 1) {
       this.level++;
       this.slow = 0;
       return true;
     }
-    if (this.fast > 300 && this.level > 0) {
+    if (this.fast > 10_000 && this.level > 0) {
       this.level--;
       this.fast = 0;
       return true;

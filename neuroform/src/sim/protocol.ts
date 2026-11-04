@@ -178,7 +178,9 @@ export interface Requests {
   build: { req: { config: BrainConfig }; res: BuiltNetwork };
   run: { req: Record<string, never>; res: void };
   pause: { req: Record<string, never>; res: { step: number; timeMs: number } };
-  step: { req: { steps: number }; res: { step: number; timeMs: number } };
+  step: { req: { steps: number; quiet?: boolean }; res: { step: number; timeMs: number } };
+  /** Reads (and restarts) the telemetry window: an exact measurement interval. */
+  measure: { req: Record<string, never>; res: TelemetryReport };
   setSpeed: { req: { speed: number }; res: void };
   reset: { req: { weights: boolean }; res: void };
   stimulate: { req: { spec: StimulusSpec }; res: { id: number; targets: Uint32Array } };
@@ -215,8 +217,8 @@ export interface Requests {
   synapseTable: { req: Record<string, never>; res: SynapseTable };
   snapshot: { req: Record<string, never>; res: { bytes: Uint8Array; step: number; timeMs: number } };
   restore: { req: { bytes: Uint8Array }; res: { step: number; timeMs: number } };
-  recordStart: { req: { maxSpikes: number }; res: void };
-  recordStop: { req: Record<string, never>; res: { bytes: Uint8Array; spikes: number; durationMs: number } | null };
+  recordStart: { req: { maxSpikes: number; channel?: 'user' | 'experiment' }; res: void };
+  recordStop: { req: { channel?: 'user' | 'experiment' }; res: { bytes: Uint8Array; spikes: number; durationMs: number } | null };
   benchmark: { req: { sizes: number[]; seconds: number }; res: BenchmarkResult[] };
 }
 

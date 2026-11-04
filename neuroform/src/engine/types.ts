@@ -82,6 +82,8 @@ export interface TelemetryReport {
   activeNeurons: number;
   activeExc: number;
   activeInh: number;
+  /** Synapses whose presynaptic neuron fired in the window (each carried ≥ 1 event). */
+  activeSynapses: number;
   firingLastStep: number;
   vMean: number;
   synchrony: number;

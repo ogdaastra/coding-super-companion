@@ -24,8 +24,8 @@ export class PulseLayer {
     this.posAttr.setUsage(DynamicDrawUsage);
     this.colAttr = new InstancedBufferAttribute(this.col, 4);
     this.colAttr.setUsage(DynamicDrawUsage);
-    const p = instancedDynamicBufferAttribute(this.posAttr);
-    const c = instancedDynamicBufferAttribute(this.colAttr);
+    const p = instancedDynamicBufferAttribute<'vec3'>(this.posAttr, 'vec3');
+    const c = instancedDynamicBufferAttribute<'vec4'>(this.colAttr, 'vec4');
     const d = length(uv().sub(0.5)).mul(2);
     const profile = exp(d.mul(d).mul(-14)).add(exp(d.mul(d).mul(-3)).mul(0.25)).mul(smoothstep(1.0, 0.8, d));
     const fog = exp(positionView.z.negate().mul(this.uniforms.fog).negate());

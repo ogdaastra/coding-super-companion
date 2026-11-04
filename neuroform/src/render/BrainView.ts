@@ -54,9 +54,29 @@ const MAX_SPAWN_PER_FRAME = 6000;
 
 export class RendererUnavailableError extends Error {}
 
+function detectGpu(renderer: WebGPURenderer): string {
+  const backend = renderer.backend as unknown as { gl?: WebGL2RenderingContext; adapter?: { info?: { vendor?: string; architecture?: string; description?: string } } };
+  try {
+    if (backend.gl) {
+      const gl = backend.gl;
+      const ext = gl.getExtension('WEBGL_debug_renderer_info');
+      return String(gl.getParameter(ext ? ext.UNMASKED_RENDERER_WEBGL : gl.RENDERER) ?? '');
+    }
+    const info = backend.adapter?.info;
+    if (info) return [info.vendor, info.architecture, info.description].filter(Boolean).join(' ');
+  } catch {
+    /* not exposed */
+  }
+  return '';
+}
+
 export class BrainView {
   readonly renderer: WebGPURenderer;
   readonly backend: 'WebGPU' | 'WebGL2';
+  /** Adapter / renderer description, when the browser exposes it. */
+  gpuName = '';
+  /** True when the browser is rendering without GPU acceleration. */
+  softwareRenderer = false;
   readonly scene = new Scene();
   readonly rig: CameraRig;
   private readonly canvas: HTMLCanvasElement;
@@ -66,9 +86,9 @@ export class BrainView {
   private bloomNode: ReturnType<typeof bloom>;
 
   private info: NetInfo | null = null;
-  private positions = new Float32Array(0);
-  private regionOf = new Uint16Array(0);
-  private classOf = new Uint8Array(0);
+  private positions: Float32Array = new Float32Array(0);
+  private regionOf: Uint16Array = new Uint16Array(0);
+  private classOf: Uint8Array = new Uint8Array(0);
   private colors: string[] = [];
   private neurons: NeuronLayer | null = null;
   private seg: Record<SegLayerName, SynapseLayer | null> = { sample: null, focus: null, detail: null };
@@ -96,8 +116,6 @@ export class BrainView {
   private related: Set<number> | null = null;
   private isolate = -1;
   private regionActivity: number[] = [];
-  private regionRates: number[] = [];
-  private projectionActivity = new Float64Array(0);
   private auxSource: 'none' | 'rates' | 'membrane' | 'regional' = 'none';
   running = false;
   speed = 1;
@@ -153,7 +171,10 @@ export class BrainView {
       }
     }
     const backend = (renderer.backend as { isWebGPUBackend?: boolean }).isWebGPUBackend ? 'WebGPU' : 'WebGL2';
-    return new BrainView(canvas, labelLayer, renderer, backend);
+    const view = new BrainView(canvas, labelLayer, renderer, backend);
+    view.gpuName = detectGpu(renderer);
+    view.softwareRenderer = /swiftshader|llvmpipe|softpipe|software|basic render/i.test(view.gpuName);
+    return view;
   }
 
   private constructor(canvas: HTMLCanvasElement, labelLayer: HTMLElement, renderer: WebGPURenderer, backend: 'WebGPU' | 'WebGL2') {
@@ -213,8 +234,8 @@ export class BrainView {
     posAttr.setUsage(DynamicDrawUsage);
     const colAttr = new InstancedBufferAttribute(col, 4);
     colAttr.setUsage(DynamicDrawUsage);
-    const p = instancedDynamicBufferAttribute(posAttr);
-    const c = instancedDynamicBufferAttribute(colAttr);
+    const p = instancedDynamicBufferAttribute<'vec3'>(posAttr, 'vec3');
+    const c = instancedDynamicBufferAttribute<'vec4'>(colAttr, 'vec4');
     const d = length(uv().sub(0.5)).mul(2);
     const ring = smoothstep(0.62, 0.7, d).mul(smoothstep(0.86, 0.78, d));
     const inner = exp(d.mul(d).mul(-30)).mul(0.6);
@@ -243,8 +264,6 @@ export class BrainView {
     this.structure = new StructureLayer(built.info, colors);
     this.scene.add(this.structure.group);
     this.regionActivity = built.info.regions.map(() => 0);
-    this.regionRates = built.info.regions.map(() => 0);
-    this.projectionActivity = new Float64Array(built.info.projections.length);
     this.selection = { neuron: null, region: null, compare: [] };
     this.related = null;
     this.stimTargets = null;
@@ -345,7 +364,7 @@ export class BrainView {
   }
 
   setFocusSynapses(graph: LocalGraph | null): void {
-    this.setSegments('focus', graph);
+    this.setSegments('focus', graph ? { ids: graph.synapses, pre: graph.pre, post: graph.post, weight: graph.weight, delayMs: graph.delayMs } : null);
     if (graph) {
       const rel = new Set<number>();
       for (let k = 0; k < graph.pre.length; k++) {
@@ -388,12 +407,18 @@ export class BrainView {
     // Pulse travel time: the real delay at the current speed, dilated to stay
     // visible (≥ 240 ms) when the simulation runs fast. The HUD reports the factor.
     const minVisible = this.mode === 'spikes' ? 380 : 260;
-    let maxDil = 1;
+    let dilSum = 0;
+    let dilN = 0;
+    let unbounded = false;
     const layers: (SynapseLayer | null)[] = [this.seg.sample, this.seg.focus, this.seg.detail];
-    for (let k = 0; k + 1 < sp.length; k += 2) {
+    // Every spike lights its neuron. Pulses are spawned newest-first, so when the
+    // pool is full it is the most recent activity that is shown, and a pulse that
+    // would already have arrived (old spike, delayed frame) is not spawned at all.
+    for (let k = 0; k + 1 < sp.length; k += 2) glow[sp[k + 1]] = 1;
+    for (let k = sp.length - 2; k >= 0; k -= 2) {
       const j = sp[k + 1];
-      glow[j] = 1;
-      if (spawned >= MAX_SPAWN_PER_FRAME) continue;
+      if (spawned >= MAX_SPAWN_PER_FRAME) break;
+      const age = Math.max(0, (f.step - sp[k]) * dt * realFactor);
       for (let li = 0; li < 3; li++) {
         const layer = layers[li];
         if (!layer) continue;
@@ -402,19 +427,21 @@ export class BrainView {
         for (let q = a; q < b; q++) {
           const s = layer.preList[q];
           if (layer.vis[2 * s] < 0.05) continue;
+          const real = layer.data.delayMs[s] * realFactor;
+          const dur = Math.min(1800, Math.max(real, minVisible));
+          if (age >= dur) continue;
           if (this.pActive >= capacity) {
             this.pDropped++;
             continue;
           }
-          const real = layer.data.delayMs[s] * realFactor;
-          const dur = Math.min(1800, Math.max(real, minVisible));
-          if (real > 0) maxDil = Math.max(maxDil, dur / real);
-          else maxDil = Infinity;
+          if (real > 0) {
+            dilSum += dur / real;
+            dilN++;
+          } else unbounded = true;
           const p = this.pActive++;
           this.pLayer[p] = li;
           this.pSeg[p] = s;
-          // Later spikes in the same frame start slightly later.
-          this.pStart[p] = now - Math.max(0, (f.step - sp[k]) * dt * realFactor);
+          this.pStart[p] = now - age;
           this.pDur[p] = dur;
           layer.act[2 * s] = 1;
           layer.act[2 * s + 1] = 1;
@@ -424,7 +451,7 @@ export class BrainView {
     }
     if (sp.length > 0) {
       this.glowActive = true;
-      this.dilation = maxDil;
+      if (dilN > 0 || unbounded) this.dilation = unbounded ? Infinity : this.dilation * 0.8 + (dilSum / dilN) * 0.2;
     }
     if (f.membrane && this.auxSource === 'membrane') {
       const st = nl.state;
@@ -489,7 +516,6 @@ export class BrainView {
 
   /** Measured firing rate per region (Hz). */
   setRegionRates(rates: number[]): void {
-    this.regionRates = rates;
     const max = Math.max(5, ...rates);
     this.regionActivity = rates.map((r) => Math.min(1, r / max));
     this.structure?.setRegions(this.regionActivity, this.selection.region ?? -1);
@@ -501,7 +527,6 @@ export class BrainView {
   }
 
   setProjectionActivity(rates: Float64Array): void {
-    this.projectionActivity = rates;
     if (this.structure && this.info) this.structure.setBundles(rates, this.selection.region ?? this.isolate, this.info);
   }
 

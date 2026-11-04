@@ -182,6 +182,7 @@ pub struct TelemetryReport {
     pub active_neurons: u32,
     pub active_exc: u32,
     pub active_inh: u32,
+    pub active_synapses: u64,
     pub firing_last_step: u32,
     pub v_mean: f64,
     pub synchrony: f64,
@@ -243,9 +244,18 @@ impl Network {
 
         // Neurons that fired at least once during the window.
         let mut active = vec![[0u32; 2]; rcount];
+        // Synapses that carried at least one event: every outgoing synapse of a
+        // neuron that fired in the window (pathway gains of zero excluded).
+        let mut active_synapses = 0u64;
         for i in 0..self.n {
             if self.last_spike[i] >= start_stamp && self.last_spike[i] != 0 {
                 active[self.p.region[i] as usize][self.p.class[i] as usize] += 1;
+                let (lo, hi) = (self.row_ptr[i] as usize, self.row_ptr[i + 1] as usize);
+                for s in lo..hi {
+                    if self.gain_table[self.syn_proj[s] as usize] != 0.0 {
+                        active_synapses += 1;
+                    }
+                }
             }
         }
 
@@ -287,6 +297,7 @@ impl Network {
             active_neurons: active.iter().map(|a| a[0] + a[1]).sum(),
             active_exc: active.iter().map(|a| a[0]).sum(),
             active_inh: active.iter().map(|a| a[1]).sum(),
+            active_synapses,
             firing_last_step: tw.firing_last_step,
             v_mean: vsum_total / steps / self.n.max(1) as f64,
             synchrony: tw.chi(tw.global_sum, tw.global_sq, &all),

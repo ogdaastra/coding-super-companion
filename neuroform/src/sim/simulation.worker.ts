@@ -14,6 +14,7 @@
 
 import { EngineModule, EngineNetwork, EngineError, type NetworkBuilder } from '../engine/wasmEngine.ts';
 import type { BrainConfig } from '../config/schema.ts';
+import type { TelemetryReport } from '../engine/types.ts';
 import { observatory } from '../config/presets.ts';
 import { StepScheduler } from './scheduler.ts';
 import { RecordingWriter } from './recording.ts';
@@ -61,7 +62,8 @@ let windowStart = 0;
 let windowBusy = 0;
 let windowSteps = 0;
 
-let recorder: RecordingWriter | null = null;
+/** Spike capture channels: the user's recording and an experiment's capture. */
+const recorders = new Map<'user' | 'experiment', RecordingWriter>();
 
 function post(e: WorkerEvent, transfer: Transferable[] = []): void {
   self.postMessage(e, transfer);
@@ -100,7 +102,7 @@ function queueTick(immediate: boolean): void {
 function drainSpikes(n: EngineNetwork): void {
   const spikes = n.view('frameSpikes');
   if (spikes.length > 0) {
-    if (recorder) recorder.addSpikes(spikes);
+    for (const r of recorders.values()) r.addSpikes(spikes);
     const need = pendingLen + spikes.length;
     // Without a renderer pulling frames (tab hidden), keep only recent spikes.
     if (performance.now() - lastFrameRequest > 1000) {
@@ -179,9 +181,9 @@ function perf(now: number): WorkerPerf {
   };
 }
 
-function maybeTelemetry(now: number, force = false): void {
-  if (!net) return;
-  if (!force && now - lastTelemetry < 1000 / telemetryHz) return;
+function maybeTelemetry(now: number, force = false): TelemetryReport | null {
+  if (!net) return null;
+  if (!force && now - lastTelemetry < 1000 / telemetryHz) return null;
   lastTelemetry = now;
   const n = net;
   const report = n.telemetry();
@@ -198,7 +200,7 @@ function maybeTelemetry(now: number, force = false): void {
     const recs = n.synapsesById(trackedIds);
     tracked = { ids: recs.map((r) => r.id), weights: new Float32Array(recs.map((r) => r.weight)) };
   }
-  if (recorder) recorder.addTelemetry(report);
+  for (const r of recorders.values()) r.addTelemetry(report);
   const transfer: Transferable[] = [raster.buffer];
   if (probes) transfer.push(probes.samples.buffer);
   if (tracked) transfer.push(tracked.weights.buffer);
@@ -210,13 +212,14 @@ function maybeTelemetry(now: number, force = false): void {
       raster,
       probes,
       tracked,
-      recording: recorder ? { active: true, spikes: recorder.spikeCount, durationMs: report.timeMs - recorder.startMs } : null,
+      recording: recorders.has('user') ? { active: true, spikes: recorders.get('user')!.spikeCount, durationMs: report.timeMs - recorders.get('user')!.startMs } : null,
     },
     transfer,
   );
   windowStart = now;
   windowBusy = 0;
   windowSteps = 0;
+  return report;
 }
 
 function onFrame(req: FrameRequest): void {
@@ -277,7 +280,7 @@ async function build(cfg: BrainConfig): Promise<BuiltNetwork> {
     net.free();
     net = null;
   }
-  recorder = null;
+  recorders.clear();
   const t0 = performance.now();
   let builder: NetworkBuilder | null = mod.createBuilder(cfg);
   try {
@@ -635,13 +638,21 @@ const handlers: Handlers = {
     setStatus('paused');
     return { step: n.step, timeMs: n.timeMs };
   },
-  step({ steps }) {
+  step({ steps, quiet }) {
     const n = requireNet();
     const k = Math.max(1, Math.min(100_000, Math.floor(steps)));
+    const t0 = performance.now();
     n.run(k);
+    windowBusy += performance.now() - t0;
+    windowSteps += k;
     drainSpikes(n);
-    maybeTelemetry(performance.now(), true);
+    // Quiet steps leave the telemetry window open (exact experiment measurements).
+    if (!quiet) maybeTelemetry(performance.now(), true);
     return { step: n.step, timeMs: n.timeMs };
+  },
+  measure() {
+    requireNet();
+    return maybeTelemetry(performance.now(), true)!;
   },
   setSpeed({ speed }) {
     scheduler.speed = speed > 0 ? speed : Infinity;
@@ -807,15 +818,17 @@ const handlers: Handlers = {
     maybeTelemetry(performance.now(), true);
     return { step: n.step, timeMs: n.timeMs };
   },
-  recordStart({ maxSpikes }) {
+  recordStart({ maxSpikes, channel }) {
     const n = requireNet();
-    recorder = new RecordingWriter(n.info, config, n.timeMs, n.step, maxSpikes);
+    drainSpikes(n);
+    recorders.set(channel ?? 'user', new RecordingWriter(n.info, config, n.timeMs, n.step, maxSpikes));
   },
-  recordStop() {
-    if (!recorder || !net) return null;
-    const r = recorder;
-    recorder = null;
+  recordStop({ channel }) {
+    const key = channel ?? 'user';
+    const r = recorders.get(key);
+    if (!r || !net) return null;
     drainSpikes(net);
+    recorders.delete(key);
     const bytes = r.finish(net.timeMs, net.step);
     return { bytes, spikes: r.spikeCount, durationMs: net.timeMs - r.startMs };
   },

@@ -23,7 +23,6 @@ import {
   float,
   instancedBufferAttribute,
   instancedDynamicBufferAttribute,
-  max,
   mix,
   positionView,
   smoothstep,
@@ -46,7 +45,10 @@ export interface NeuronModeWeights {
   size: number;
 }
 
-function heatRamp(x: ReturnType<typeof float>) {
+/** A float-typed shader node. */
+type FloatNode = ReturnType<typeof uv>['x'];
+
+function heatRamp(x: FloatNode) {
   const c0 = vec3(...hexToRgb('#141c2e'));
   const c1 = vec3(...hexToRgb('#1f8fb3'));
   const c2 = vec3(...hexToRgb(PALETTE.cyan));
@@ -96,10 +98,10 @@ export class NeuronLayer {
     this.stateAttr = new InstancedBufferAttribute(this.state, 3);
     this.stateAttr.setUsage(DynamicDrawUsage);
 
-    const pos = instancedBufferAttribute(new InstancedBufferAttribute(positions, 3));
-    const baseNode = instancedBufferAttribute(new InstancedBufferAttribute(base, 4));
-    const glow = instancedDynamicBufferAttribute(this.glowAttr);
-    const st = instancedDynamicBufferAttribute(this.stateAttr);
+    const pos = instancedBufferAttribute<'vec3'>(new InstancedBufferAttribute(positions, 3), 'vec3');
+    const baseNode = instancedBufferAttribute<'vec4'>(new InstancedBufferAttribute(base, 4), 'vec4');
+    const glow = instancedDynamicBufferAttribute<'float'>(this.glowAttr, 'float');
+    const st = instancedDynamicBufferAttribute<'vec3'>(this.stateAttr, 'vec3');
     const u = this.uniforms;
 
     const isInh = baseNode.w;
@@ -137,7 +139,7 @@ export class NeuronLayer {
     const mat = new SpriteNodeMaterial({ transparent: true, depthWrite: false, blending: AdditiveBlending });
     mat.positionNode = pos;
     mat.colorNode = vec4(col.mul(profile).mul(intensity), 1);
-    mat.scaleNode = u.size.mul(float(1).add(g.mul(1.4)).add(hlOn.mul(0.8))).mul(max(float(0.35), float(1).sub(dim.mul(0.5))));
+    mat.scaleNode = u.size.mul(float(1).add(g.mul(1.4)).add(hlOn.mul(0.8))).mul(float(1).sub(dim.mul(0.5)).max(0.35));
     mat.sizeAttenuation = true;
 
     this.sprite = new Sprite(mat);

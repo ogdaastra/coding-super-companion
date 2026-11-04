@@ -61,14 +61,14 @@ export class StructureLayer {
     this.haloState = new Float32Array(r * 2);
     this.haloAttr = new InstancedBufferAttribute(this.haloState, 2);
     this.haloAttr.setUsage(DynamicDrawUsage);
-    const st = instancedDynamicBufferAttribute(this.haloAttr);
-    const cn = instancedBufferAttribute(new InstancedBufferAttribute(colors, 4));
+    const st = instancedDynamicBufferAttribute<'vec2'>(this.haloAttr, 'vec2');
+    const cn = instancedBufferAttribute<'vec4'>(new InstancedBufferAttribute(colors, 4), 'vec4');
     const d = length(uv().sub(0.5)).mul(2);
     const profile = exp(d.mul(d).mul(-4)).mul(smoothstep(1.0, 0.6, d));
     const selected = st.y;
     const col = mix(cn.xyz, vec3(...hexToRgb(PALETTE.violet)), selected.mul(0.6));
     const hm = new SpriteNodeMaterial({ transparent: true, depthWrite: false, blending: AdditiveBlending });
-    hm.positionNode = instancedBufferAttribute(new InstancedBufferAttribute(centers, 3));
+    hm.positionNode = instancedBufferAttribute<'vec3'>(new InstancedBufferAttribute(centers, 3), 'vec3');
     hm.colorNode = vec4(col.mul(profile).mul(st.x.mul(0.18).add(selected.mul(0.08))).mul(this.uniforms.halo), 1);
     hm.scaleNode = cn.w.mul(2.6);
     this.halo = new Sprite(hm);

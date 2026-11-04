@@ -96,7 +96,7 @@ type ArrayCtor =
   | Uint16ArrayConstructor
   | Uint8ArrayConstructor;
 
-const ARRAY_TYPES: Record<ArrayName, ArrayCtor> = {
+const ARRAY_TYPES = {
   positions: Float32Array,
   regionOf: Uint16Array,
   classOf: Uint8Array,
@@ -120,7 +120,7 @@ const ARRAY_TYPES: Record<ArrayName, ArrayCtor> = {
   probes: Uint32Array,
   vReset: Float32Array,
   vRest: Float32Array,
-};
+} satisfies Record<ArrayName, ArrayCtor>;
 
 type ViewOf<K extends ArrayName> = InstanceType<(typeof ARRAY_TYPES)[K]>;
 
