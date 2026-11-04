@@ -198,10 +198,11 @@ Rules:
 | render | `src/render` | `NexusViewport` (QQuickRhiItem), renderer, camera, particles, post-processing |
 | integration | `src/integration` | Claude Code detection, hook installer, session launcher, terminal launch |
 | sim | `src/sim` | Clearly-labelled simulated telemetry for demos/tests |
-| app | `src/app` | Composition root, QML context, command routing |
+| app | `src/app` | Composition root, project↔scene bridge, visual director, integration/changes/timeline facades |
+| ui | `src/ui` | Scene-graph QML items (execution timeline) |
 | relay | `relay/` | `nexus-relay` hook/status-line forwarder |
 | shaders | `shaders/` | GLSL 440 sources compiled by `qsb` |
-| qml | `qml/` | Design system, panels, environment layout |
+| qml | `src/qml/` | Design tokens, components, panels, environment layout |
 
 ---
 

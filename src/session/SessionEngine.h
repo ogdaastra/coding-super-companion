@@ -86,7 +86,7 @@ class SessionEngine : public QObject
     Q_PROPERTY(QObject *events READ eventsModel CONSTANT)
     Q_PROPERTY(QString activeSession READ activeSession WRITE setActiveSession NOTIFY activeSessionChanged)
     Q_PROPERTY(int sessionCount READ sessionCount NOTIFY sessionsChanged)
-    Q_PROPERTY(int liveSessionCount READ liveSessionCount NOTIFY sessionsChanged)
+    Q_PROPERTY(int liveSessionCount READ liveSessionCount NOTIFY revisionChanged)
     Q_PROPERTY(int eventCount READ eventCount NOTIFY eventsChanged)
     Q_PROPERTY(qreal activity READ activity NOTIFY activityChanged)
     Q_PROPERTY(qreal eventRate READ eventRate NOTIFY activityChanged)

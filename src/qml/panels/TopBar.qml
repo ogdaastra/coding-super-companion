@@ -183,7 +183,7 @@ Item {
             visible: agentBox.info.id === undefined
             Icon { name: "hook"; size: 15; color: Theme.textTertiary; anchors.verticalCenter: parent.verticalCenter }
             Label {
-                text: bar.hooked ? "No live Claude Code sessions" : "Claude Code not connected — open Setup"
+                text: bar.hooked || nexus.sessions.sessionCount > 0 ? "No live Claude Code sessions" + (nexus.sessions.lastEventTs > 0 ? "  ·  last activity " + nexus.formatAgo(nexus.sessions.lastEventTs) : "") : "Claude Code not connected — open Setup"
                 color: Theme.textTertiary
                 font.pixelSize: 12
                 anchors.verticalCenter: parent.verticalCenter

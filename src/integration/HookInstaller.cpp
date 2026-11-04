@@ -235,7 +235,10 @@ bool HookInstaller::apply(const InstallPlan &plan, QString *backupPath, QString 
     }
     QDir().mkpath(QFileInfo(plan.path).absolutePath());
     if (plan.exists) {
-        const QString backup = plan.path + QStringLiteral(".nexus-backup-") + QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd-HHmmss"));
+        const QString stem = plan.path + QStringLiteral(".nexus-backup-") + QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd-HHmmss"));
+        QString backup = stem;
+        for (int n = 2; QFile::exists(backup); ++n)   // never overwrite an earlier backup
+            backup = stem + QLatin1Char('-') + QString::number(n);
         if (!QFile::copy(plan.path, backup)) {
             *error = QStringLiteral("Could not create a backup at %1; nothing was changed.").arg(backup);
             return false;

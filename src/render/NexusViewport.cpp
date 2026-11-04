@@ -82,7 +82,9 @@ QString NexusViewport::targetSize() const
 void NexusViewport::onFrame()
 {
     const float now = float(m_clock.nsecsElapsed()) / 1.0e9f;
-    m_dt = std::clamp(now - m_lastTime, 0.0001f, 0.1f);
+    // raw wall-clock frame time for statistics; clamped step for animation stability
+    const float rawDt = std::max(now - m_lastTime, 0.0001f);
+    m_dt = std::min(rawDt, 0.1f);
     m_lastTime = now;
     m_time = now;
 
@@ -100,7 +102,7 @@ void NexusViewport::onFrame()
         updateLabels();
 
     ++m_frameCounter;
-    m_statWindow += m_dt;
+    m_statWindow += rawDt;
     if (m_statWindow >= 0.5f) {
         m_fps = m_frameCounter / m_statWindow;
         m_frameMs = 1000.0 * m_statWindow / m_frameCounter;
@@ -108,7 +110,7 @@ void NexusViewport::onFrame()
         m_statWindow = 0.f;
         emit statsChanged();
     }
-    emit frameTick(m_time, m_dt);
+    emit frameTick(m_time, rawDt);
     update();
 }
 

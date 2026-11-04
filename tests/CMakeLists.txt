@@ -1,0 +1,16 @@
+find_package(Qt6 REQUIRED COMPONENTS Test)
+
+function(nexus_test name)
+    qt_add_executable(${name} ${name}.cpp)
+    target_link_libraries(${name} PRIVATE nexus_core Qt6::Test)
+    add_test(NAME ${name} COMMAND ${name})
+    set_tests_properties(${name} PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+endfunction()
+
+nexus_test(tst_redactor)
+nexus_test(tst_normalizer)
+nexus_test(tst_scanner)
+nexus_test(tst_installer)
+nexus_test(tst_git)
+nexus_test(tst_session)
+nexus_test(tst_layouts)

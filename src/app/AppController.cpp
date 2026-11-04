@@ -23,6 +23,7 @@
 #include <QSettings>
 #include <QTimer>
 #include <QUrl>
+#include <algorithm>
 #include <cstdio>
 
 namespace nexus::app {
@@ -129,6 +130,9 @@ bool AppController::parseCommandLine(const QStringList &args)
     p.addOption({ QStringLiteral("select"), QStringLiteral("Select and focus a project node by relative path."), QStringLiteral("key") });
     p.addOption({ QStringLiteral("module"), QStringLiteral("Initial module: core, universe, observatory, changes, command, agents, atlas, setup."), QStringLiteral("name") });
     p.addOption({ QStringLiteral("layout"), QStringLiteral("Initial layout 0-5 (galaxy, constellation, force, layered, tree, heatmap)."), QStringLiteral("n") });
+    p.addOption({ QStringLiteral("benchmark"), QStringLiteral("Measure frame times for <seconds> (after a 3 s warm-up), print statistics and quit."), QStringLiteral("seconds") });
+    p.addOption({ QStringLiteral("quality"), QStringLiteral("Graphics quality preset 0-3 (low, medium, high, ultra)."), QStringLiteral("n") });
+    p.addOption({ QStringLiteral("launch"), QStringLiteral("Start a headless Claude Code session with this task once the project is indexed (same path as the Command Centre)."), QStringLiteral("task") });
     p.process(args);
     m_screenshotPath = p.value(QStringLiteral("screenshot"));
     if (p.isSet(QStringLiteral("screenshot-delay")))
@@ -138,6 +142,9 @@ bool AppController::parseCommandLine(const QStringList &args)
     m_selectKey = p.value(QStringLiteral("select"));
     m_startupModule = p.value(QStringLiteral("module"));
     if (p.isSet(QStringLiteral("layout"))) m_layoutOverride = p.value(QStringLiteral("layout")).toInt();
+    m_launchPrompt = p.value(QStringLiteral("launch"));
+    m_benchmarkSeconds = p.value(QStringLiteral("benchmark")).toInt();
+    if (p.isSet(QStringLiteral("quality"))) m_benchmarkQuality = p.value(QStringLiteral("quality")).toInt();
     return true;
 }
 
@@ -167,6 +174,17 @@ void AppController::start()
     if (m_layoutOverride >= 0)
         m_projectScene->setLayout(m_layoutOverride);
 
+    if (!m_launchPrompt.isEmpty()) {
+        // explicit, user-supplied automation: identical to pressing "Launch session"
+        auto conn = std::make_shared<QMetaObject::Connection>();
+        *conn = connect(m_projectScene, &ProjectScene::sceneRebuilt, this, [this, conn]() {
+            disconnect(*conn);
+            QTimer::singleShot(1500, this, [this]() {
+                const QString key = m_integration->launchHeadless(m_projectScene->projectRoot(), m_launchPrompt, QStringLiteral("default"), QString());
+                std::fprintf(stderr, "NEXUS: headless launch %s\n", key.isEmpty() ? qPrintable(m_integration->lastLaunchError()) : qPrintable(key));
+            });
+        });
+    }
     if (m_autoSimulate || !m_selectKey.isEmpty()) {
         // wait for the first snapshot so the simulation and selection have real files
         auto conn = std::make_shared<QMetaObject::Connection>();
@@ -187,8 +205,45 @@ void AppController::start()
             }
         });
     }
+    if (m_benchmarkQuality >= 0 && m_viewport)
+        m_viewport->setQuality(m_benchmarkQuality);
+    if (m_benchmarkSeconds > 0)
+        runBenchmark();
     if (!m_screenshotPath.isEmpty())
         scheduleScreenshot();
+}
+
+void AppController::runBenchmark()
+{
+    if (!m_viewport) return;
+    struct Bench { std::vector<float> dts; std::vector<float> gpu; bool recording = false; };
+    auto b = std::make_shared<Bench>();
+    connect(m_viewport, &render::NexusViewport::frameTick, this, [this, b](float, float dt) {
+        if (!b->recording) return;
+        b->dts.push_back(dt * 1000.f);
+        if (m_viewport->gpuMs() >= 0) b->gpu.push_back(float(m_viewport->gpuMs()));
+    });
+    QTimer::singleShot(3000, this, [b]() { b->recording = true; });
+    QTimer::singleShot(3000 + m_benchmarkSeconds * 1000, this, [this, b]() {
+        auto pct = [](std::vector<float> v, double q) {
+            if (v.empty()) return 0.f;
+            std::sort(v.begin(), v.end());
+            return v[std::min(v.size() - 1, size_t(q * double(v.size())))];
+        };
+        double sum = 0; for (float d : b->dts) sum += d;
+        const double mean = b->dts.empty() ? 0 : sum / double(b->dts.size());
+        double gsum = 0; for (float g : b->gpu) gsum += g;
+        std::printf("NEXUS benchmark\n  backend      %s\n  target       %s (quality %d, %dx MSAA, %d particles, %s)\n"
+                    "  nodes/edges  %d / %d\n  frames       %zu over %d s\n  frame ms     mean %.2f  p50 %.2f  p95 %.2f  p99 %.2f\n"
+                    "  fps          mean %.1f\n  gpu ms       %s\n",
+                    qPrintable(m_viewport->backend()), qPrintable(m_viewport->targetSize()), m_viewport->quality(), m_viewport->msaa(),
+                    m_viewport->particleCapacity(), m_viewport->computeParticles() ? "compute" : "cpu",
+                    m_viewport->nodeCount(), m_viewport->edgeCount(), b->dts.size(), m_benchmarkSeconds,
+                    mean, pct(b->dts, 0.5), pct(b->dts, 0.95), pct(b->dts, 0.99), mean > 0 ? 1000.0 / mean : 0.0,
+                    b->gpu.empty() ? "n/a" : qPrintable(QString::number(gsum / double(b->gpu.size()), 'f', 2)));
+        std::fflush(stdout);
+        QCoreApplication::quit();
+    });
 }
 
 void AppController::openProject(const QString &path)

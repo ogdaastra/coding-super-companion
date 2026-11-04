@@ -91,6 +91,10 @@ private:
     QString m_selectKey;
     QString m_startupModule;
     int m_layoutOverride = -1;
+    QString m_launchPrompt;
+    int m_benchmarkSeconds = 0;
+    int m_benchmarkQuality = -1;
+    void runBenchmark();
 
     project::ProjectService *m_projects = nullptr;
     project::GitService *m_git = nullptr;
