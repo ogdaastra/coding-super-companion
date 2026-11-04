@@ -76,6 +76,9 @@ public:
     Q_INVOKABLE void resetView();
     // Frames a structure of the given radius around the core (keeps the viewing angle).
     void frameRadius(float radius, float duration = 1.6f);
+    // Cinematic move: sweep toward a point while rotating around it.
+    void sweepTo(const QVector3D &target, float distance, float yawOffset, float duration);
+    void returnHome(float duration);
     Q_INVOKABLE void preset(const QString &name);
     Q_INVOKABLE void select(int globalIndex);
     Q_INVOKABLE QString nodeKey(int globalIndex) const;

@@ -71,11 +71,17 @@ environment: built, run, screenshot-reviewed, and unit-tested where noted.
 ## Phase 5 — Advanced graphics 🟡
 - ✅ Event signatures (read streams, write pulses + dependent ripple, shock rings, failure
   disturbance, completion wave, prompt injection)
-- 🟡 Cinematic mode (chrome removed, auto-rotation, title card). There is no automatic
-  camera choreography that follows the activity yet.
+- ✅ Cinematic mode: chrome removed, title card, and camera choreography that sweeps toward
+  the files agents are working on (at most one move every 4.5–7 s), then drifts home
 - 🟡 Depth fog (in node shading); no depth of field
 - ⬜ SSAO: investigated and not implemented. The scene has few occluding surfaces, so it is
   unlikely to improve the image.
+
+## Environment configurability 🟡
+- ✅ Fullscreen, cinematic and compact modes; collapsible activity dock
+- ✅ Resizable dock and side panels (drag handles); preferences persisted with `QtCore.Settings`
+- ⬜ Multiple named workspaces
+- ⬜ Alternative colour themes (tokens are centralised in `Theme.qml`, but only one theme ships)
 
 ## Phase 6 — Polish 🟡
 - ✅ Screenshot review passes; several layout, label and notification issues fixed

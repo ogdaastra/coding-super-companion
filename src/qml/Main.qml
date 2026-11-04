@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Window
+import QtCore
 import Nexus
 
 Window {
@@ -13,12 +14,12 @@ Window {
     title: "NEXUS" + (nexus.project.hasProject ? " — " + nexus.project.projectName : "")
 
     readonly property bool panelsVisible: !Ui.cinematic
-    readonly property real leftWidth: 320
-    readonly property real rightWidth: 380
+    readonly property real leftWidth: settingsStore.leftWidth
+    readonly property real rightWidth: settingsStore.rightWidth
     readonly property real gutter: 12
     readonly property bool leftVisible: panelsVisible && !Ui.compact && Ui.module !== "changes" && Ui.module !== "setup"
     readonly property bool inspectorVisible: panelsVisible && inspector.hasContent && Ui.module !== "setup"
-    readonly property real dockHeight: Ui.dockOpen ? (Ui.module === "observatory" ? 330 : 236) : 34
+    readonly property real dockHeight: Ui.dockOpen ? (Ui.module === "observatory" ? Math.max(settingsStore.dockHeight, 330) : settingsStore.dockHeight) : 34
 
     // ------------------------------------------------------------------ 3D environment
     NexusViewport {
@@ -53,10 +54,17 @@ Window {
         visible: false
     }
 
-    QtObject {
+    Binding { target: nexus.director; property: "cinematic"; value: Ui.cinematic }
+
+    // persisted per-user preferences (native settings store, not browser storage)
+    Settings {
         id: settingsStore
+        category: "ui"
         property int quality: 2
         property bool autoRotate: true
+        property real dockHeight: 236
+        property real leftWidth: 320
+        property real rightWidth: 380
     }
 
     Component.onCompleted: {
@@ -65,7 +73,8 @@ Window {
         Ui.confirmHost = confirm
         Ui.toastHost = toasts
         Ui.paletteHost = palette
-        if (nexus.startupModule.length) Ui.module = nexus.startupModule
+        if (nexus.startupModule === "cinematic") Ui.cinematic = true
+        else if (nexus.startupModule.length) Ui.module = nexus.startupModule
     }
 
     // labels are confined to the unobstructed part of the viewport
@@ -192,6 +201,29 @@ Window {
         y: root.panelsVisible ? root.height - height - root.gutter : root.height + 10
         Behavior on height { NumberAnimation { duration: Theme.emphasis; easing.type: Easing.OutCubic } }
         Behavior on y { NumberAnimation { duration: Theme.emphasis; easing.type: Easing.OutCubic } }
+    }
+
+    // ------------------------------------------------------------------ resize handles
+    ResizeHandle {
+        visible: dock.visible && Ui.dockOpen && root.panelsVisible
+        orientation: Qt.Vertical
+        x: dock.x + 40; width: dock.width - 80
+        y: dock.y - 5
+        onDragged: (d) => settingsStore.dockHeight = Math.max(140, Math.min(root.height * 0.6, settingsStore.dockHeight - d))
+    }
+    ResizeHandle {
+        visible: leftPanel.visible && root.leftVisible
+        orientation: Qt.Horizontal
+        x: leftPanel.x + leftPanel.width - 2; y: leftPanel.y + 30
+        height: leftPanel.height - 60
+        onDragged: (d) => settingsStore.leftWidth = Math.max(260, Math.min(520, settingsStore.leftWidth + d))
+    }
+    ResizeHandle {
+        visible: inspector.visible && root.inspectorVisible
+        orientation: Qt.Horizontal
+        x: inspector.x - 4; y: inspector.y + 30
+        height: inspector.height - 60
+        onDragged: (d) => settingsStore.rightWidth = Math.max(300, Math.min(620, settingsStore.rightWidth - d))
     }
 
     // ------------------------------------------------------------------ cinematic title card

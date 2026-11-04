@@ -38,6 +38,15 @@ higher than "GPU" time. On real hardware the expected cost is dominated by:
 3. **Glass panels.** A ShaderEffectSource of the viewport at ¼ resolution plus 5 taps per
    pane pixel.
 
+### Larger project (software rasteriser)
+
+Qt's own header tree (`/opt/Qt/6.8.3/gcc_64/include`): **4,437 files, 11,433 resolved
+includes, 47,959 symbols, 339 directories**. Indexing took **339–391 ms** on 4 cores. The
+scene has 5,207 node instances and 17,399 ribbon instances. Rendering ran at **2.3 FPS**
+on OpenGL/llvmpipe (Medium preset, 442 ms mean frame), which is roughly proportional to
+the geometry. To stay legible at this density, ribbon intensity scales with edge count
+(see `VisualScene::rebuildProjectEdges`).
+
 ## Design choices that bound the cost
 
 * Instance buffers are re-uploaded only when the graph or an event changes. Layout

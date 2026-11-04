@@ -217,6 +217,17 @@ void NexusViewport::resetView()
     m_camera.flyToPose({ 0, 0, 0 }, m_homeDistance, 0.62f, 0.34f, 1.6f);
 }
 
+void NexusViewport::sweepTo(const QVector3D &target, float distance, float yawOffset, float duration)
+{
+    const float pitch = std::clamp(m_camera.pitch() * 0.6f + 0.18f, 0.12f, 0.7f);
+    m_camera.flyToPose(target, distance, m_camera.yaw() + yawOffset, pitch, duration);
+}
+
+void NexusViewport::returnHome(float duration)
+{
+    m_camera.flyToPose({ 0, 0, 0 }, m_homeDistance, m_camera.yaw() + 0.35f, 0.32f, duration);
+}
+
 void NexusViewport::frameRadius(float radius, float duration)
 {
     const float aspect = float(width() / std::max(1.0, height()));

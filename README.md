@@ -107,6 +107,11 @@ claude mcp add nexus -- python3 /path/to/build/src/nexus_mcp.py --relay /path/to
   application data directory (on Linux, `~/.local/share/Nexus/NEXUS`): `events.db`,
   `spool/`, `safety/`.
 
+## Layout
+
+Drag the edges of the side panels and the activity dock to resize them. NEXUS remembers
+these sizes, the quality preset and the last project.
+
 ## Keyboard
 
 `Ctrl K` search and commands · `Ctrl 1–8` modules · `C` cinematic mode · `F11` fullscreen ·

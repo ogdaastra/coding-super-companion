@@ -53,6 +53,9 @@ VisualDirector::VisualDirector(session::SessionEngine *engine, ProjectScene *pro
     m_heatTimer.setInterval(2000);
     connect(&m_heatTimer, &QTimer::timeout, this, &VisualDirector::applyHeat);
     m_heatTimer.start();
+    m_homeTimer.setSingleShot(true);
+    m_homeTimer.setInterval(11000);
+    connect(&m_homeTimer, &QTimer::timeout, this, [this]() { if (m_vp && m_cinematic) m_vp->returnHome(4.5f); });
     m_alertDecay.setSingleShot(true);
     connect(&m_alertDecay, &QTimer::timeout, this, [this]() { if (m_vp) m_vp->setAlert(0.0); });
 }
@@ -61,6 +64,31 @@ void VisualDirector::setViewport(NexusViewport *vp)
 {
     m_vp = vp;
     syncAgents();
+}
+
+void VisualDirector::setCinematic(bool on)
+{
+    if (on == m_cinematic) return;
+    m_cinematic = on;
+    m_sinceMove.invalidate();
+    if (!on) m_homeTimer.stop();
+    emit cinematicChanged();
+}
+
+// Cinematic choreography: the camera follows where the agent is actually working, at a
+// pace that keeps the image calm (at most one move every ~7 s), then drifts home.
+void VisualDirector::cinematicCue(int sceneNode, bool important)
+{
+    if (!m_cinematic || !m_vp || sceneNode < 0) return;
+    if (m_sinceMove.isValid() && m_sinceMove.elapsed() < (important ? 4500 : 7000)) return;
+    m_sinceMove.start();
+    VisualScene *scene = m_vp->scene();
+    const QVector3D p = scene->projectTarget(sceneNode);
+    // aim between the core and the node so both remain in frame
+    const QVector3D aim = p * 0.72f;
+    m_sweepSign = -m_sweepSign;
+    m_vp->sweepTo(aim, std::max(70.f, p.length() * 0.95f), 0.55f * m_sweepSign, 5.5f);
+    m_homeTimer.start();
 }
 
 void VisualDirector::setHeatMode(bool on)
@@ -177,10 +205,12 @@ void VisualDirector::play(const NexusEvent &e)
             if (n < 0) continue;
             const QVector3D p = scene->projectPosition(n);
             if (failed) {
+                cinematicCue(n, true);
                 scene->markError(n);
                 scene->emitBurst(p, kAlert, 40, 4.f, 1.6f, 0.30f, 0.1f);
                 continue;
             }
+            cinematicCue(n, e.category == QLatin1String("write"));
             if (e.category == QLatin1String("read")) {
                 scene->markRead(n);
                 // information flows from the file into the agent

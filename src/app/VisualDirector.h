@@ -5,6 +5,7 @@
 #include <QObject>
 #include <QPointer>
 #include <QTimer>
+#include <QElapsedTimer>
 #include <QHash>
 
 namespace nexus::session { class SessionEngine; }
@@ -20,6 +21,7 @@ class VisualDirector : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(bool heatMode READ heatMode WRITE setHeatMode NOTIFY heatModeChanged)
+    Q_PROPERTY(bool cinematic READ cinematic WRITE setCinematic NOTIFY cinematicChanged)
 public:
     VisualDirector(session::SessionEngine *engine, ProjectScene *project, QObject *parent = nullptr);
 
@@ -29,15 +31,19 @@ public:
 
     bool heatMode() const { return m_heatMode; }
     void setHeatMode(bool on);
+    bool cinematic() const { return m_cinematic; }
+    void setCinematic(bool on);
 
 signals:
     void heatModeChanged();
+    void cinematicChanged();
 
 private:
     void syncAgents();
     void applyHeat();
     QVector3D agentPos(const QString &sessionId) const;
     void flashAlert(float level);
+    void cinematicCue(int sceneNode, bool important);
 
     session::SessionEngine *m_engine;
     ProjectScene *m_project;
@@ -46,6 +52,10 @@ private:
     QTimer m_alertDecay;
     bool m_heatMode = true;
     QHash<QString, qint64> m_lastTurnStart;
+    bool m_cinematic = false;
+    QElapsedTimer m_sinceMove;
+    QTimer m_homeTimer;
+    float m_sweepSign = 1.f;
 };
 
 } // namespace nexus::app

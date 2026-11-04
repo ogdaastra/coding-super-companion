@@ -18,7 +18,7 @@ Item {
             font.family: Theme.fontDisplay
             font.weight: Font.Light
             font.pixelSize: 44
-            font.letterSpacing: 2
+            font.letterSpacing: 0.4
             color: Theme.glacier
         }
         Label {
