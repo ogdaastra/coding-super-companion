@@ -1,0 +1,8 @@
+node_modules/
+dist/
+engine/target/
+src/engine/generated/
+test-results/
+playwright-report/
+bench/results/*.tmp.json
+*.log
