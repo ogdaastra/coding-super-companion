@@ -12,7 +12,8 @@ namespace nexus::core {
 // except for the payload, which is implicitly shared by QJsonObject.
 struct NexusEvent {
     enum class Source { Hook, StatusLine, Stream, Simulation, System };
-    enum class Provenance { Observed, Derived, Inferred };
+    // Declared: self-reported by the agent (e.g. MCP milestones), not observed behaviour
+    enum class Provenance { Observed, Derived, Inferred, Declared };
 
     QString id;
     qint64 seq = 0;

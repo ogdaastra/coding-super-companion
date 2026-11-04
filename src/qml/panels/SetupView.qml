@@ -233,6 +233,23 @@ Glass {
                 }
 
                 Section {
+                    title: "MCP server (optional)"
+                    Label {
+                        width: parent.width; wrapMode: Text.WordWrap; elide: Text.ElideNone
+                        font.pixelSize: 11; color: Theme.textSecondary
+                        text: "Lets an agent declare milestones on its NEXUS timeline (shown as “declared”) and ask which files other sessions are editing. Python 3, standard library only."
+                    }
+                    Rectangle {
+                        width: parent.width
+                        height: mcpCmd.implicitHeight + 14
+                        color: Theme.alpha(Theme.void_, 0.6)
+                        border.color: Theme.hairline
+                        Label { id: mcpCmd; x: 7; y: 7; width: parent.width - 14; text: integ.mcpRegisterCommand; mono: true; wrapMode: Text.WrapAnywhere; elide: Text.ElideNone; font.pixelSize: 10; color: Theme.ice }
+                    }
+                    NxButton { text: "Copy command"; icon: "copy"; implicitHeight: 26; onClicked: { integ.copyToClipboard(integ.mcpRegisterCommand); Ui.toast("info", "Copied", "Run it in a terminal to register the NEXUS MCP server with Claude Code.") } }
+                }
+
+                Section {
                     title: "Simulation"
                     Label {
                         width: parent.width; wrapMode: Text.WordWrap; elide: Text.ElideNone

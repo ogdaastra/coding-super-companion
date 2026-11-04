@@ -31,6 +31,7 @@ QString NexusEvent::provenanceName(Provenance p)
     case Provenance::Observed: return QStringLiteral("observed");
     case Provenance::Derived: return QStringLiteral("derived");
     case Provenance::Inferred: return QStringLiteral("inferred");
+    case Provenance::Declared: return QStringLiteral("declared");
     }
     return QStringLiteral("observed");
 }
@@ -92,7 +93,8 @@ NexusEvent NexusEvent::fromJson(const QJsonObject &o)
     e.summary = o.value(QStringLiteral("summary")).toString();
     const QString prov = o.value(QStringLiteral("provenance")).toString();
     e.provenance = prov == QLatin1String("derived") ? Provenance::Derived
-                 : prov == QLatin1String("inferred") ? Provenance::Inferred : Provenance::Observed;
+                 : prov == QLatin1String("inferred") ? Provenance::Inferred
+                 : prov == QLatin1String("declared") ? Provenance::Declared : Provenance::Observed;
     e.claudePid = o.value(QStringLiteral("claude_pid")).toInt();
     e.testRun = o.value(QStringLiteral("test_run")).toBool();
     e.payload = o.value(QStringLiteral("payload")).toObject();

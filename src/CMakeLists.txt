@@ -92,3 +92,7 @@ set_target_properties(nexus PROPERTIES
     OUTPUT_NAME nexus)
 
 install(TARGETS nexus BUNDLE DESTINATION . RUNTIME DESTINATION bin)
+
+# NEXUS MCP server (Python, standard library only) ships next to the executable.
+configure_file(${CMAKE_SOURCE_DIR}/integration/mcp/nexus_mcp.py ${CMAKE_CURRENT_BINARY_DIR}/nexus_mcp.py COPYONLY)
+install(FILES ${CMAKE_SOURCE_DIR}/integration/mcp/nexus_mcp.py DESTINATION bin)

@@ -30,6 +30,7 @@ QString Normalizer::kindForHookEvent(const QString &n)
         { "Elicitation", "elicitation" }, { "ElicitationResult", "elicitation.result" },
         { "DirectoryAdded", "directory.added" }, { "MessageDisplay", "message.display" },
         { "NexusSetupTest", "system.setup_test" },
+        { "NexusMilestone", "agent.milestone" },
     };
     return map.value(n, QStringLiteral("unknown"));
 }
@@ -214,6 +215,11 @@ NexusEvent Normalizer::fromHook(const QJsonObject &p, qint64 capturedMs, int par
         e.summary = QStringLiteral("Instructions loaded: ") + shortPath(fp, e.cwd);
     } else if (e.kind == QLatin1String("model.switch")) {
         e.summary = QStringLiteral("Model: %1 → %2").arg(p.value(QStringLiteral("from_model")).toString(), p.value(QStringLiteral("to_model")).toString());
+    } else if (e.kind == QLatin1String("agent.milestone")) {
+        // self-reported through the NEXUS MCP server; attributed by Claude Code's pid
+        e.provenance = NexusEvent::Provenance::Declared;
+        e.claudePid = p.value(QStringLiteral("claude_pid")).toInt(parentPid);
+        e.summary = QStringLiteral("Declared: ") + firstLine(Redactor::redact(p.value(QStringLiteral("title")).toString()), 120);
     } else if (e.kind == QLatin1String("system.setup_test")) {
         e.source = NexusEvent::Source::System;
         e.summary = QStringLiteral("Setup test event received through nexus-relay");

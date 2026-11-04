@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Dialogs
 import Nexus
 
 Item {
@@ -54,7 +55,8 @@ Item {
                   : "No agent telemetry yet. Connect Claude Code so NEXUS can observe sessions through hooks."
             lineHeight: 1.25
         }
-        Row {
+        Flow {
+            width: parent.width
             spacing: 8
             NxButton { text: nexus.integration.userHooks.eventCount > 0 ? "Setup" : "Connect Claude Code"; icon: "hook"; variant: "primary"; onClicked: Ui.module = "setup" }
             NxButton { text: "Run simulation"; icon: "sim"; enabled_: nexus.project.hasProject; tooltip: "Clearly-labelled synthetic events for exploring NEXUS"; onClicked: nexus.integration.startSimulation(2) }
@@ -97,10 +99,18 @@ Item {
             }
             Label {
                 visible: !nexus.project.hasProject
-                text: "No project loaded. Use the project switcher in the top bar."
+                text: "Open a project to map its structure into the universe around the core. NEXUS indexes it locally; nothing leaves this machine."
                 color: Theme.textTertiary
                 wrapMode: Text.WordWrap
+                elide: Text.ElideNone
                 width: parent.width
+            }
+            NxButton {
+                visible: !nexus.project.hasProject
+                text: "Open project…"
+                icon: "folder"
+                variant: "primary"
+                onClicked: openDialog.open()
             }
         }
 
@@ -141,5 +151,11 @@ Item {
                 onClicked: nexus.integration.clearSimulated()
             }
         }
+    }
+
+    FolderDialog {
+        id: openDialog
+        title: "Choose a project folder"
+        onAccepted: nexus.openProject(selectedFolder.toString())
     }
 }

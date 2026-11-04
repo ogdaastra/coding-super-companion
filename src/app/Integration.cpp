@@ -75,6 +75,16 @@ QString Integration::claudeVersion() const { return m_detector->result().version
 QString Integration::claudeError() const { return m_detector->result().error; }
 QString Integration::dataDir() const { return core::Paths::dataDir(); }
 
+QString Integration::mcpServerPath() const
+{
+    return QCoreApplication::applicationDirPath() + QStringLiteral("/nexus_mcp.py");
+}
+
+QString Integration::mcpRegisterCommand() const
+{
+    return QStringLiteral("claude mcp add nexus -- python3 \"%1\" --relay \"%2\"").arg(mcpServerPath(), relayPath());
+}
+
 QString Integration::relayPath() const
 {
 #ifdef Q_OS_WIN

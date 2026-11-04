@@ -80,6 +80,17 @@ removes only NEXUS's handlers.
 
 Sessions started from the Command Centre do not need any installation.
 
+### Optional: NEXUS MCP server
+
+`nexus_mcp.py` is a Python server that uses only the standard library. It lets an agent
+**declare** milestones on its own timeline lane (labelled `declared`) and ask which files
+*other* live sessions have recently written, so concurrent agents can avoid conflicting
+edits. Register it with:
+
+```bash
+claude mcp add nexus -- python3 /path/to/build/src/nexus_mcp.py --relay /path/to/build/src/nexus-relay
+```
+
 ## Security & privacy
 
 * **No network listeners.** IPC is a local socket restricted to the current user

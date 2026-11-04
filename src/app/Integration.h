@@ -44,6 +44,8 @@ class Integration : public QObject
     Q_PROPERTY(bool simulationRunning READ simulationRunning NOTIFY simulationChanged)
     Q_PROPERTY(QVariantList launches READ launches NOTIFY launchesChanged)
     Q_PROPERTY(QString dataDir READ dataDir CONSTANT)
+    Q_PROPERTY(QString mcpServerPath READ mcpServerPath CONSTANT)
+    Q_PROPERTY(QString mcpRegisterCommand READ mcpRegisterCommand CONSTANT)
 
 public:
     Integration(ingest::IngestServer *ingest, store::EventStore *store, session::SessionEngine *engine,
@@ -71,6 +73,8 @@ public:
     bool simulationRunning() const;
     QVariantList launches() const;
     QString dataDir() const;
+    QString mcpServerPath() const;
+    QString mcpRegisterCommand() const;
 
     Q_INVOKABLE void detect();
     Q_INVOKABLE void refreshHookStatus();

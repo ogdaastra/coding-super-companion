@@ -370,6 +370,14 @@ void SessionEngine::setState(SessionRecord &s, AgentState st, Prov p, const QStr
     s.stateDetail = detail;
 }
 
+void SessionEngine::attribute(NexusEvent &e) const
+{
+    if (!e.sessionId.isEmpty() || e.claudePid <= 1)
+        return;
+    for (const auto &[id, s] : m_sessions)
+        if (s->claudePid == e.claudePid && s->state != AgentState::Ended) { e.sessionId = id; return; }
+}
+
 void SessionEngine::ingest(const core::EventList &events, bool live)
 {
     if (events.isEmpty()) return;
@@ -380,6 +388,7 @@ void SessionEngine::ingest(const core::EventList &events, bool live)
 void SessionEngine::ingestOne(const NexusEvent &eIn, bool live)
 {
     NexusEvent e = eIn;
+    attribute(e);
     if (e.kind == QLatin1String("system.setup_test") || e.sessionId.isEmpty()) {
         // events that belong to no session are logged but never create a session
         m_events.push_back(e);
@@ -416,7 +425,7 @@ void SessionEngine::apply(SessionRecord &s, const NexusEvent &e, int idx, bool l
     s.lastTs = std::max(s.lastTs, e.ts);
     if (s.firstTs == 0 || e.ts < s.firstTs) s.firstTs = e.ts;
     if (!e.cwd.isEmpty() && s.cwd.isEmpty()) s.cwd = e.cwd;
-    if (e.claudePid > 1 && e.source == NexusEvent::Source::Hook) s.claudePid = e.claudePid;
+    if (e.claudePid > 1 && e.source == NexusEvent::Source::Hook && e.kind != QLatin1String("agent.milestone")) s.claudePid = e.claudePid;
     if (e.simulated) s.simulated = true;
     if (s.state == AgentState::Stale) setState(s, AgentState::Idle, Prov::Inferred, QStringLiteral("activity resumed"), e.ts);
     const QJsonObject &p = e.payload;
@@ -580,6 +589,8 @@ void SessionEngine::apply(SessionRecord &s, const NexusEvent &e, int idx, bool l
     } else if (k == QLatin1String("instructions.loaded")) {
         for (const QString &f : e.files)
             if (!s.instructionFiles.contains(f)) s.instructionFiles.append(f);
+    } else if (k == QLatin1String("agent.milestone")) {
+        s.milestones.push_back({ e.ts, QStringLiteral("declared"), e.summary.mid(10), idx });
     } else if (k == QLatin1String("model.switch")) {
         s.model = p.value(QStringLiteral("to_model")).toString(s.model);
     } else if (k == QLatin1String("status.update")) {

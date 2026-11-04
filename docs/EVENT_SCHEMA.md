@@ -62,6 +62,7 @@ and size-capped) in `payload` so that nothing is lost by normalisation.
 | `observed` | Directly reported by Claude Code | `PostToolUse` with `duration_ms` |
 | `derived` | Computed exactly from observed facts | duration from paired Pre/Post timestamps |
 | `inferred` | Heuristic classification of observed facts | "test run" from a Bash command matching `pytest`/`ctest`/… |
+| `declared` | Self-reported by the agent, not observed behaviour | a milestone sent through the NEXUS MCP server |
 
 The UI must label inferred facts as such.
 
@@ -89,6 +90,7 @@ The UI must label inferred facts as such.
 | `status.update` | status line | context window, cost, model, rate limits |
 | `stream.message` | headless `stream-json` | assistant text / usage for NEXUS-launched sessions |
 | `stream.result` | headless `stream-json` | final result, cost, usage |
+| `agent.milestone` | `NexusMilestone` (NEXUS MCP server) | provenance `declared`; attributed to a session by Claude Code pid |
 | `system.*` | NEXUS itself | e.g. `system.setup_test`, `system.overflow` |
 | `unknown` | anything else | kept verbatim; never discarded |
 

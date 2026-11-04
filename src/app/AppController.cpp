@@ -112,6 +112,8 @@ void AppController::onLiveEvents(const core::EventList &events)
     batch += events;
     m_pendingLive.clear();
     if (batch.isEmpty()) return;
+    for (core::NexusEvent &e : batch)
+        m_engine->attribute(e);   // persist the same attribution the engine uses
     m_store->append(batch);
     m_engine->ingest(batch, true);
 }

@@ -44,6 +44,7 @@ QColor milestoneColor(const QString &kind)
     if (kind == QLatin1String("failure")) return QColor(255, 77, 94);
     if (kind == QLatin1String("compact")) return QColor(110, 124, 255);
     if (kind == QLatin1String("start") || kind == QLatin1String("end")) return QColor(157, 176, 200);
+    if (kind == QLatin1String("declared")) return QColor(255, 205, 120);
     return QColor(154, 134, 255);
 }
 

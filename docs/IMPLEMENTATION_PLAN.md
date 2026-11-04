@@ -63,6 +63,9 @@ environment: built, run, screenshot-reviewed, and unit-tested where noted.
 - 🟡 Knowledge atlas: instructions loaded, docs/config/build files, bookmarks with notes.
   There is no embedding search yet (optional feature, deferred).
 - ✅ Search: files, directories and symbols (command palette and Universe panel)
+- ✅ NEXUS MCP server (Python, stdlib): `nexus_milestone` (declared provenance),
+  `nexus_shared_files` (cross-session conflict awareness), `nexus_recent_activity`.
+  Verified with a real Claude Code session.
 - 🟡 Accept/reject of individual hunks (whole-file stage/discard only)
 
 ## Phase 5 — Advanced graphics 🟡
@@ -83,6 +86,5 @@ environment: built, run, screenshot-reviewed, and unit-tested where noted.
 ## Deliberately deferred (the architecture supports them)
 - tree-sitter / LSP analysers behind `SourceScanner`
 - Embedding-based semantic search (optional, local only)
-- Python MCP server through which an agent can declare milestones and notes
 - Launching additional agents automatically (never without explicit authorisation)
 - Hunk-level staging

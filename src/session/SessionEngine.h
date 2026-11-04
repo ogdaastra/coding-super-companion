@@ -103,6 +103,8 @@ public:
     // `live` false for history replayed from the store (no visual effects, no toasts).
     void ingest(const core::EventList &events, bool live);
     void ingestOne(const core::NexusEvent &e, bool live);
+    // Fills in the session of session-less events (MCP milestones) from the Claude Code pid.
+    void attribute(core::NexusEvent &e) const;
     void markLaunchedByNexus(const QString &sessionId);
     void clearSimulated();
 
