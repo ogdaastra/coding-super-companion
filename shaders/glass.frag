@@ -50,6 +50,9 @@ void main()
                + texture(source, uv + vec2(0.0, o.y)).rgb * 0.16
                + texture(source, uv - vec2(0.0, o.y)).rgb * 0.16;
 
+    // soft-compress bright scenes: the pane tints, it never glows
+    float sl = dot(scene, vec3(0.2126, 0.7152, 0.0722));
+    scene = scene / (1.0 + sl * 3.0) * 0.85;
     vec3 base = vec3(0.034, 0.046, 0.068);
     float vgrad = 1.0 - qt_TexCoord0.y * 0.25;
     vec3 col = base * vgrad + scene * tint;

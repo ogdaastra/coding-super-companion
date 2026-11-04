@@ -111,6 +111,7 @@ void ProjectScene::onSnapshot(const ProjectSnapshotPtr &snap, bool structureChan
         m_symbolCount += int(f.symbols.size());
     if (first) {
         m_git->setRoot(snap->root);
+        m_needsFraming = true;
         emit projectChanged();
     }
     if (first || structureChanged)
@@ -200,6 +201,7 @@ void ProjectScene::setLayout(int kind)
     if (graph::LayoutKind(kind) == m_layout && !m_layoutRunning)
         return;
     m_layout = graph::LayoutKind(kind);
+    m_needsFraming = true;
     emit layoutChanged();
     requestLayout(true);
 }
@@ -237,8 +239,15 @@ void ProjectScene::requestLayout(bool warmStart)
             return;
         self->m_layoutRunning = false;
         if (ticket == self->m_layoutTicket && self->m_viewport
-            && int(res.positions.size()) == self->m_viewport->scene()->projectNodeCount())
+            && int(res.positions.size()) == self->m_viewport->scene()->projectNodeCount()) {
             self->m_viewport->scene()->setProjectLayout(res.positions, 0.7f);
+            if (self->m_needsFraming) {
+                float maxR = 40.f;
+                for (const QVector3D &p : res.positions) maxR = std::max(maxR, p.length());
+                self->m_viewport->frameRadius(maxR, 2.2f);
+                self->m_needsFraming = false;
+            }
+        }
         emit self->layoutChanged();
         if (self->m_layoutPending) {
             self->m_layoutPending = false;

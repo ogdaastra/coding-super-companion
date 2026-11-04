@@ -203,17 +203,29 @@ void NexusViewport::flyToNode(int g)
         return;
     const QVector3D pos = m_scene.globalPosition(g);
     const int p = m_scene.projectForGlobal(g);
-    float dist = 26.f;
+    // frame the node together with its immediate neighbourhood
+    float dist = 40.f;
     if (p >= 0) {
         const auto &n = m_scene.projectNode(p);
-        dist = n.kind == NodeKind::Directory ? 46.f : 24.f;
+        dist = n.kind == NodeKind::Directory ? 72.f + n.radius * 6.f : 42.f + n.radius * 7.f;
     }
     m_camera.flyTo(p >= 0 ? m_scene.projectTarget(p) : pos, dist, 1.4f);
 }
 
 void NexusViewport::resetView()
 {
-    m_camera.flyToPose({ 0, 0, 0 }, 185.f, 0.62f, 0.34f, 1.6f);
+    m_camera.flyToPose({ 0, 0, 0 }, m_homeDistance, 0.62f, 0.34f, 1.6f);
+}
+
+void NexusViewport::frameRadius(float radius, float duration)
+{
+    const float aspect = float(width() / std::max(1.0, height()));
+    const float halfFov = qDegreesToRadians(m_camera.fovY()) * 0.5f;
+    // fit the sphere of `radius` vertically and horizontally, with a margin for panels
+    const float fitV = radius / std::sin(halfFov);
+    const float fitH = radius / std::sin(std::atan(std::tan(halfFov) * aspect));
+    m_homeDistance = std::clamp(std::max(fitV, fitH) * 0.92f, 90.f, 900.f);
+    m_camera.flyToPose({ 0, 0, 0 }, m_homeDistance, m_camera.yaw(), std::max(0.25f, m_camera.pitch()), duration);
 }
 
 void NexusViewport::preset(const QString &name)
@@ -221,11 +233,11 @@ void NexusViewport::preset(const QString &name)
     if (name == QLatin1String("core"))
         m_camera.flyToPose({ 0, 0, 0 }, 62.f, m_camera.yaw(), 0.22f, 1.4f);
     else if (name == QLatin1String("top"))
-        m_camera.flyToPose({ 0, 0, 0 }, 260.f, m_camera.yaw(), 1.40f, 1.6f);
+        m_camera.flyToPose({ 0, 0, 0 }, m_homeDistance * 1.3f, m_camera.yaw(), 1.40f, 1.6f);
     else if (name == QLatin1String("horizon"))
-        m_camera.flyToPose({ 0, 0, 0 }, 210.f, m_camera.yaw(), 0.05f, 1.6f);
+        m_camera.flyToPose({ 0, 0, 0 }, m_homeDistance * 1.1f, m_camera.yaw(), 0.05f, 1.6f);
     else if (name == QLatin1String("wide"))
-        m_camera.flyToPose({ 0, 0, 0 }, 330.f, m_camera.yaw(), 0.45f, 1.6f);
+        m_camera.flyToPose({ 0, 0, 0 }, std::min(950.f, m_homeDistance * 1.7f), m_camera.yaw(), 0.45f, 1.6f);
     else
         resetView();
 }

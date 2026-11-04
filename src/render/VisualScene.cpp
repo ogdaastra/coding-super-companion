@@ -273,6 +273,12 @@ void VisualScene::rebuildProjectEdges()
 {
     m_edges.resize(size_t(m_structureEdgeCount));
     m_projectEdgeBase = m_structureEdgeCount;
+    // Level of detail: additive ribbons saturate when thousands overlap, so their
+    // intensity falls off with the number of edges of each kind.
+    int importCount = 0, containCount = 0;
+    for (const SceneEdge &se : m_projectEdges) (se.kind == EdgeKind::Containment ? containCount : importCount)++;
+    const float importLod = std::clamp(std::sqrt(900.f / float(std::max(importCount, 1))), 0.12f, 1.f);
+    const float containLod = std::clamp(std::sqrt(1200.f / float(std::max(containCount, 1))), 0.18f, 1.f);
     for (const SceneEdge &se : m_projectEdges) {
         if (se.a < 0 || se.b < 0 || se.a >= projectNodeCount() || se.b >= projectNodeCount())
             continue;
@@ -295,11 +301,14 @@ void VisualScene::rebuildProjectEdges()
         store3(e.aT, v3(na.targetPos));
         store3(e.b, v3(nb.startPos)); e.tB = nb.transitionStart;
         store3(e.bT, v3(nb.targetPos));
+        alpha *= se.kind == EdgeKind::Containment ? containLod : importLod;
         store4(e.color, color.x(), color.y(), color.z(), alpha);
         store4(e.params, float(int(EdgeMode::Bezier)), float(int(se.kind)), width, curvature);
         store4(e.extra, kNever, flow, dash, 0.f);
         m_edges.push_back(e);
     }
+    m_edgeBaseAlpha.clear();
+    for (size_t e = size_t(m_projectEdgeBase); e < m_edges.size(); ++e) m_edgeBaseAlpha.push_back(m_edges[e].color[3]);
     // Agent orbits
     for (size_t i = 0; i < m_agents.size(); ++i) {
         const NodeInstance &an = m_nodes[size_t(m_agentBase) + i];
@@ -453,7 +462,7 @@ void VisualScene::setAllDimmed(bool dimmed)
         projectInstance(i).color[3] = dimmed ? 0.22f : 1.f;
     // edges follow node dimming
     for (size_t e = size_t(m_projectEdgeBase); e < m_edges.size(); ++e)
-        m_edges[e].color[3] = dimmed ? 0.25f : 1.f;
+        m_edges[e].color[3] = dimmed ? 0.12f : m_edgeBaseAlpha.empty() ? 1.f : m_edgeBaseAlpha[std::min(e - size_t(m_projectEdgeBase), m_edgeBaseAlpha.size() - 1)];
     touchNodes();
     touchEdges();
 }
@@ -466,7 +475,7 @@ void VisualScene::activateEdgesAround(int node, float delay, bool outgoing, bool
         const size_t idx = size_t(m_projectEdgeBase + edgeIdx);
         if (idx < m_edges.size()) {
             m_edges[idx].extra[0] = m_time + delay;
-            if (restoreAlpha) m_edges[idx].color[3] = 1.f;
+            if (restoreAlpha) m_edges[idx].color[3] = std::max(m_edges[idx].color[3], 0.85f);
         }
     };
     if (outgoing)

@@ -142,6 +142,7 @@ private:
     std::vector<SceneAgent> m_agents;
     QHash<QString, int> m_agentKeyToIndex;
 
+    std::vector<float> m_edgeBaseAlpha;   // LOD-scaled opacity of project edges
     std::vector<SpawnCommand> m_spawns;
     float m_spawnSeed = 1.f;
 

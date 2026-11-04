@@ -6,6 +6,8 @@ import Nexus
 Glass {
     id: cv
     ticks: true
+    fill: 0.97
+    tint: Backdrop.enabled ? 0.22 : 0.0
     readonly property var ch: nexus.changes
     readonly property var selectedFile: {
         for (const f of ch.files) if (f.path === ch.selected) return f

@@ -8,6 +8,8 @@ Glass {
     property var viewport
     property var settings
     ticks: true
+    fill: 0.97
+    tint: Backdrop.enabled ? 0.22 : 0.0
     property string scope: "user"
     property bool statusline: true
     property var plan: ({})

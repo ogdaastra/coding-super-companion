@@ -76,6 +76,7 @@ Window {
         width: (root.panelsVisible && root.inspectorVisible ? inspector.x - 4 : root.width) - x
         height: (root.panelsVisible ? dock.y - 4 : root.height) - y
         opacity: Ui.cinematic ? 0.75 : 1
+        visible: Ui.module !== "changes" && Ui.module !== "setup"
     }
 
     // subtle frame vignette lines around the working area

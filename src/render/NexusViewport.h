@@ -74,6 +74,8 @@ public:
 
     Q_INVOKABLE void flyToNode(int globalIndex);
     Q_INVOKABLE void resetView();
+    // Frames a structure of the given radius around the core (keeps the viewing angle).
+    void frameRadius(float radius, float duration = 1.6f);
     Q_INVOKABLE void preset(const QString &name);
     Q_INVOKABLE void select(int globalIndex);
     Q_INVOKABLE QString nodeKey(int globalIndex) const;
@@ -144,6 +146,7 @@ private:
     qreal m_frameMs = 0.0;
     int m_labelTick = 0;
     QMetaObject::Connection m_frameConn;
+    float m_homeDistance = 185.f;
 };
 
 } // namespace nexus::render

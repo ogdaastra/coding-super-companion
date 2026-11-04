@@ -124,6 +124,7 @@ private:
     bool m_layoutPending = false;
     quint64 m_layoutTicket = 0;
     QString m_focusKey;
+    bool m_needsFraming = true;   // frame the camera after the next layout
 };
 
 } // namespace nexus::app

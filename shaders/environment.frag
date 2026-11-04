@@ -111,7 +111,7 @@ void main()
     col *= 1.0 - lanes * 0.35;
 
     // Stars: three layers from dense/faint to sparse/bright.
-    col += starLayer(rd, 220.0, 0.060, time) * 0.40;
+    col += starLayer(rd, 220.0, 0.030, time) * 0.30;
     col += starLayer(rd, 110.0, 0.035, time) * 0.65;
     col += starLayer(rd, 55.0, 0.020, time) * 0.95;
 
@@ -153,7 +153,7 @@ void main()
         float horizon = smoothstep(0.0, 0.18, -rd.y);
         vec3 gridColor = vec3(0.10, 0.28, 0.48);
         float g = lineMinor * 0.10 + lineMajor * 0.30 + lineRadial * 0.06 + lineRadialMajor * 0.18;
-        col += gridColor * g * fade * horizon * 0.22;
+        col += gridColor * g * fade * horizon * 0.85;
 
         // Reflection of the core's light pooled on the grid plane.
         float pool = exp(-r * r / (2.0 * 70.0 * 70.0));
