@@ -1,0 +1,185 @@
+#version 440
+// GPU particle simulation.
+//   [0, ambientCount)            ambient dust orbiting the structure (never dies)
+//   [ambientCount, totalCount)   ring buffer of event-driven particles
+// Each frame the CPU appends spawn commands; this kernel initialises the slots in the
+// ring range [ringBase, ringBase + spawnCount) and integrates everything else.
+
+layout(local_size_x = 256) in;
+
+struct Particle {
+    vec4 pos;    // xyz, w = age
+    vec4 vel;    // xyz, w = life
+    vec4 color;  // rgb, a = size
+    vec4 a;      // start xyz, type
+    vec4 b;      // end xyz, seed
+    vec4 c;      // control xyz, flags (dust: rest radius)
+};
+
+struct Spawn {
+    vec4 p0;     // start xyz, type
+    vec4 p1;     // end xyz, life
+    vec4 color;  // rgb, size
+    vec4 params; // count, prefixStart, seed, spread
+    vec4 extra;  // control xyz, stagger
+};
+
+layout(std140, binding = 0) uniform Sim {
+    vec4 time;    // t, dt, ambientCount, totalCount
+    vec4 spawn;   // ringBase, spawnCount, cmdCount, ringCapacity
+    vec4 nucleus; // xyz, activity
+    vec4 field;   // inner, outer, swirl, noiseScale
+} sim;
+
+layout(std430, binding = 1) buffer Particles {
+    Particle particles[];
+};
+
+layout(std430, binding = 2) readonly buffer Spawns {
+    Spawn spawns[];
+};
+
+float hash11(float p)
+{
+    p = fract(p * 0.1031);
+    p *= p + 33.33;
+    p *= p + p;
+    return fract(p);
+}
+
+vec3 hash31(float p)
+{
+    vec3 p3 = fract(vec3(p) * vec3(0.1031, 0.1030, 0.0973));
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.xxy + p3.yzz) * p3.zyx);
+}
+
+vec3 randomDir(float seed)
+{
+    vec3 h = hash31(seed);
+    float z = h.x * 2.0 - 1.0;
+    float phi = h.y * 6.2831853;
+    float r = sqrt(max(1.0 - z * z, 0.0));
+    return vec3(r * cos(phi), z, r * sin(phi));
+}
+
+vec3 bezier(vec3 a, vec3 c, vec3 b, float t)
+{
+    float u = 1.0 - t;
+    return u * u * a + 2.0 * u * t * c + t * t * b;
+}
+
+void initFromSpawn(uint idx, uint k, float j)
+{
+    Spawn s = spawns[k];
+    float seed = s.params.z + j * 1.6180339;
+    vec3 h = hash31(seed);
+    float type = s.p0.w;
+    float spread = s.params.w;
+    Particle p;
+    p.a = vec4(s.p0.xyz + randomDir(seed + 1.0) * spread * h.x, type);
+    p.b = vec4(s.p1.xyz + randomDir(seed + 2.0) * spread * h.y, seed);
+    p.c = vec4(s.extra.xyz + randomDir(seed + 3.0) * spread * 2.0 * h.z, 0.0);
+    float life = s.p1.w * (0.75 + 0.5 * hash11(seed + 4.0));
+    float delay = s.extra.w * hash11(seed + 5.0);
+    p.pos = vec4(p.a.xyz, -delay);
+    p.vel = vec4(0.0, 0.0, 0.0, life);
+    p.color = vec4(s.color.rgb, s.color.a * (0.6 + 0.8 * hash11(seed + 6.0)));
+    if (type > 2.5 && type < 3.5) {
+        // burst: p1.x carries the initial speed
+        float speed = s.p1.x * (0.35 + 0.65 * h.z);
+        p.vel.xyz = randomDir(seed + 7.0) * speed;
+        p.pos.xyz = s.p0.xyz;
+    } else if (type > 4.5) {
+        // shock ring: size grows to color.a over life
+        p.pos.xyz = s.p0.xyz;
+        p.color.a = s.color.a;
+    }
+    particles[idx] = p;
+}
+
+void main()
+{
+    uint i = gl_GlobalInvocationID.x;
+    uint total = uint(sim.time.w);
+    if (i >= total)
+        return;
+    float dt = sim.time.y;
+    float now = sim.time.x;
+    uint ambient = uint(sim.time.z);
+
+    if (i >= ambient) {
+        uint cap = uint(sim.spawn.w);
+        int rel = int(i - ambient) - int(sim.spawn.x);
+        if (rel < 0) rel += int(cap);
+        if (uint(rel) < uint(sim.spawn.y)) {
+            uint cmdCount = uint(sim.spawn.z);
+            for (uint k = 0u; k < cmdCount; ++k) {
+                float start = spawns[k].params.y;
+                float cnt = spawns[k].params.x;
+                if (float(rel) >= start && float(rel) < start + cnt) {
+                    initFromSpawn(i, k, float(rel) - start);
+                    return;  // freshly spawned: integrate from next frame
+                }
+            }
+        }
+    }
+
+    Particle p = particles[i];
+    float type = p.a.w;
+    if (type < 0.5)
+        return;
+
+    if (type < 1.5) {
+        // Ambient dust: slow differential swirl around the vertical axis, gentle
+        // wandering, pulled back toward its rest radius. Faster with agent activity.
+        vec3 rel = p.pos.xyz - sim.nucleus.xyz;
+        float r = length(rel);
+        float rest = p.c.x;
+        vec3 tangent = normalize(cross(vec3(0.0, 1.0, 0.0), rel + vec3(1e-3)));
+        float swirl = sim.field.z * (1.0 + sim.nucleus.w * 1.6) / sqrt(max(r, 1.0));
+        float s = sim.field.w;
+        float seed = p.b.w;
+        vec3 wander = vec3(sin(rel.y * s + now * 0.07 + seed),
+                           sin(rel.z * s + now * 0.05 + seed * 1.7),
+                           sin(rel.x * s + now * 0.06 + seed * 2.3)) * 0.35;
+        vec3 v = tangent * swirl * 6.0 + wander;
+        v += -normalize(rel) * (r - rest) * 0.05;
+        p.vel.xyz = v;
+        p.pos.xyz += v * dt;
+        p.pos.w += dt;
+    } else {
+        if (p.pos.w < 0.0) {
+            p.pos.w += dt;            // delayed start
+            particles[i] = p;
+            return;
+        }
+        p.pos.w += dt;
+        float life = p.vel.w;
+        if (p.pos.w > life) {
+            p.a.w = 0.0;              // dead
+            particles[i] = p;
+            return;
+        }
+        float k = p.pos.w / life;
+        if (type < 2.5) {
+            // Path pulse: eased travel along a Bézier from A to B
+            float e = k * k * (3.0 - 2.0 * k);
+            vec3 prev = p.pos.xyz;
+            p.pos.xyz = bezier(p.a.xyz, p.c.xyz, p.b.xyz, e);
+            p.vel.xyz = (p.pos.xyz - prev) / max(dt, 1e-4);
+        } else if (type < 3.5) {
+            // Burst: ballistic with drag
+            p.pos.xyz += p.vel.xyz * dt;
+            p.vel.xyz *= exp(-dt * 2.2);
+        } else if (type < 4.5) {
+            // Orbit sparkle around the nucleus
+            vec3 rel = p.pos.xyz - sim.nucleus.xyz;
+            float ang = dt * 0.8;
+            float cs = cos(ang), sn = sin(ang);
+            rel = vec3(cs * rel.x - sn * rel.z, rel.y, sn * rel.x + cs * rel.z);
+            p.pos.xyz = sim.nucleus.xyz + rel;
+        }
+    }
+    particles[i] = p;
+}
