@@ -259,6 +259,32 @@ impl Network {
             self.plasticity.inject_reward(amount.clamp(-100.0, 100.0));
         }
     }
+
+    /// Clears eligibility traces and the neuromodulator, so the next reward only
+    /// credits activity from now on (between trials of a task).
+    pub fn clear_eligibility(&mut self) {
+        self.plasticity.clear_eligibility();
+    }
+
+    /// Sets, per projection, the fraction of the neuromodulator that reaches its
+    /// reward-modulated synapses (default 1). A task can open only the pathway of
+    /// the action that was taken, so a reward or punishment credits that action
+    /// alone. An empty slice opens every projection again.
+    pub fn set_reward_gate(&mut self, gates: &[f32]) -> Result<(), ConfigError> {
+        let n = self.projections.len();
+        if gates.is_empty() {
+            self.plasticity.reward_gate = vec![1.0; n];
+            return Ok(());
+        }
+        if gates.len() != n {
+            return Err(err("rewardGate", format!("expected {n} values, one per projection")));
+        }
+        if gates.iter().any(|g| !g.is_finite() || !(0.0..=1.0).contains(g)) {
+            return Err(err("rewardGate", "values must be between 0 and 1"));
+        }
+        self.plasticity.reward_gate = gates.to_vec();
+        Ok(())
+    }
 }
 
 fn population_range(r: &crate::network::RegionState, class: ClassFilter) -> (usize, usize) {

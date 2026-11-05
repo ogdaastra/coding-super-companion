@@ -714,6 +714,60 @@ pub unsafe extern "C" fn nf_net_add_stimulus(n: *mut Network, ptr: *const u8, le
     }
 }
 
+/// Sets rate-coded Poisson input (see `Network::set_input`). `ptr` holds `count`
+/// little-endian u32 neuron ids followed by `count` little-endian f32 rates (Hz);
+/// `count` 0 clears the input. Returns the number of neurons receiving input, or
+/// -1 on error.
+///
+/// # Safety
+/// `n` must be a live network handle; `ptr..ptr+8*count` must be readable.
+#[no_mangle]
+pub unsafe extern "C" fn nf_net_set_input(n: *mut Network, ptr: *const u8, count: usize, amplitude: f32) -> i32 {
+    let bytes = if ptr.is_null() || count == 0 { &[][..] } else { std::slice::from_raw_parts(ptr, count * 8) };
+    // Decoded byte-wise: the buffer is only guaranteed to be byte-aligned.
+    let word = |k: usize| [bytes[4 * k], bytes[4 * k + 1], bytes[4 * k + 2], bytes[4 * k + 3]];
+    let ids: Vec<u32> = (0..count).map(|k| u32::from_le_bytes(word(k))).collect();
+    let rates: Vec<f32> = (0..count).map(|k| f32::from_le_bytes(word(count + k))).collect();
+    match net(n).set_input(&ids, &rates, amplitude) {
+        Ok(c) => c as i32,
+        Err(e) => {
+            set_error(e.to_string());
+            -1
+        }
+    }
+}
+
+/// Clears eligibility traces and the neuromodulator (see
+/// `PlasticityState::clear_eligibility`).
+///
+/// # Safety
+/// `n` must be a live network handle.
+#[no_mangle]
+pub unsafe extern "C" fn nf_net_clear_eligibility(n: *mut Network) {
+    net(n).clear_eligibility();
+}
+
+/// Sets the reward gate per projection (see `Network::set_reward_gate`). `ptr`
+/// holds `count` little-endian f32 values; `count` 0 opens every projection.
+/// Returns 0, or -1 on error.
+///
+/// # Safety
+/// `n` must be a live network handle; `ptr..ptr+4*count` must be readable.
+#[no_mangle]
+pub unsafe extern "C" fn nf_net_set_reward_gate(n: *mut Network, ptr: *const u8, count: usize) -> i32 {
+    let bytes = if ptr.is_null() || count == 0 { &[][..] } else { std::slice::from_raw_parts(ptr, count * 4) };
+    let gates: Vec<f32> = (0..count)
+        .map(|k| f32::from_le_bytes([bytes[4 * k], bytes[4 * k + 1], bytes[4 * k + 2], bytes[4 * k + 3]]))
+        .collect();
+    match net(n).set_reward_gate(&gates) {
+        Ok(()) => 0,
+        Err(e) => {
+            set_error(e.to_string());
+            -1
+        }
+    }
+}
+
 /// # Safety
 /// `n` must be a live network handle.
 #[no_mangle]

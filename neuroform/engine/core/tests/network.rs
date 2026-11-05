@@ -243,3 +243,50 @@ fn rejects_invalid_configurations() {
     let cfg: neuroform_core::BrainConfig = serde_json::from_value(bad).unwrap();
     assert!(cfg.validate().is_err());
 }
+
+#[test]
+fn rate_coded_input_drives_listed_neurons_at_their_rates() {
+    let mut net = build(&chain());
+    for r in 0..3 {
+        net.set_population_param(r, Default::default(), NeuronParam::Bias, 0.0).unwrap();
+        net.set_population_param(r, Default::default(), NeuronParam::NoiseStd, 0.0).unwrap();
+    }
+    quiet(&mut net);
+    // Ten neurons at 200 Hz, ten at 0 Hz (skipped), one at 1000 Hz.
+    let mut ids: Vec<u32> = (0..10).collect();
+    let mut rates = vec![200.0f32; 10];
+    ids.extend(10..20);
+    rates.extend([0.0f32; 10]);
+    ids.push(30);
+    rates.push(1000.0);
+    assert_eq!(net.set_input(&ids, &rates, 8.0).unwrap(), 11);
+
+    let steps = 10_000;
+    let s = spikes(&mut net, steps);
+    // Expected events: (10 × 200 + 1000) Hz × simulated time; allow 5 Poisson sd.
+    let expected = 3000.0 * steps as f64 * net.dt() as f64 / 1000.0;
+    let ev = net.input().events as f64;
+    assert!((ev - expected).abs() < 5.0 * expected.sqrt(), "events {ev}, expected {expected}");
+    let fired = |lo: u32, hi: u32| s.iter().filter(|&&(_, j)| (lo..hi).contains(&j)).count();
+    assert!(fired(0, 10) > 100, "driven neurons fire");
+    // Rate-0 neurons get no input events; they can only fire through recurrent
+    // synapses from the driven ones.
+    assert!(fired(10, 20) * 4 < fired(0, 10), "undriven {} vs driven {}", fired(10, 20), fired(0, 10));
+    assert!(s.iter().filter(|&&(_, j)| j == 30).count() > s.iter().filter(|&&(_, j)| j == 0).count(), "a higher rate drives more spikes");
+
+    // Clearing stops the input.
+    net.clear_input();
+    let _ = spikes(&mut net, 200); // let queued events and currents decay
+    let s = spikes(&mut net, 2000);
+    assert_eq!(fired_in(&s, 0, 10) + fired_in(&s, 30, 31), 0);
+
+    // Invalid input is rejected without changing the current input.
+    assert!(net.set_input(&[0, 1], &[10.0], 1.0).is_err());
+    assert!(net.set_input(&[100_000], &[10.0], 1.0).is_err());
+    assert!(net.set_input(&[0], &[-1.0], 1.0).is_err());
+    assert_eq!(net.input().events, 0, "the cleared input is still in place");
+}
+
+fn fired_in(s: &[(u64, u32)], lo: u32, hi: u32) -> usize {
+    s.iter().filter(|&&(_, j)| (lo..hi).contains(&j)).count()
+}

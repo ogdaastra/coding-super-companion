@@ -63,6 +63,9 @@ pub struct PlasticityState {
     /// Eligibility per synapse (only allocated when a projection uses `reward`).
     pub(crate) elig: Vec<f32>,
     pub(crate) reward_syn: Vec<u32>,
+    /// Per projection: how much of the neuromodulator reaches its synapses
+    /// (1 by default). Lets a task credit only the pathway of the action taken.
+    pub(crate) reward_gate: Vec<f32>,
 
     pub modulator: f32,
     mod_decay: f32,
@@ -109,6 +112,7 @@ impl PlasticityState {
             w0: Vec::new(),
             elig: Vec::new(),
             reward_syn: Vec::new(),
+            reward_gate: Vec::new(),
             modulator: 0.0,
             mod_decay: (-dt / cfg.modulator_tau_ms).exp(),
             reward_rate: cfg.reward_rate,
@@ -136,6 +140,7 @@ impl PlasticityState {
         if self.any_plastic {
             self.w0 = weight.to_vec();
         }
+        self.reward_gate = vec![1.0; projections.len()];
         if self.any_reward {
             self.elig = vec![0.0; weight.len()];
             self.reward_syn = syn_proj
@@ -165,6 +170,15 @@ impl PlasticityState {
             weight.copy_from_slice(&self.w0);
         }
         self.elig.fill(0.0);
+    }
+
+    /// Clears eligibility traces and the neuromodulator (not weights or spike
+    /// traces), so a following reward only credits activity from then on. Used
+    /// between trials of a task.
+    pub fn clear_eligibility(&mut self) {
+        self.elig.fill(0.0);
+        self.modulator = 0.0;
+        self.pending_reward = 0.0;
     }
 
     /// Adds a reward (or punishment, if negative) to the neuromodulator.
@@ -336,12 +350,14 @@ pub(crate) fn on_spikes(net: &mut Network, t: u64) {
             if e == 0.0 {
                 continue;
             }
-            if k != 0.0 {
-                let p = &projections[net.syn_proj[s] as usize];
+            let pj = net.syn_proj[s] as usize;
+            let g = ps.reward_gate[pj];
+            if k != 0.0 && g != 0.0 {
+                let p = &projections[pj];
                 let w = weight[s];
                 let sign = if p.source.index() == 1 { -1.0 } else { 1.0 };
                 let m0 = w.abs();
-                let m1 = (m0 + k * e).clamp(p.w_min, p.w_max);
+                let m1 = (m0 + k * g * e).clamp(p.w_min, p.w_max);
                 weight[s] = sign * m1;
                 changed += (m1 - m0).abs() as f64;
             }

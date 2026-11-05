@@ -52,6 +52,9 @@ interface Exports {
   nf_net_array_len(n: number, which: number): number;
   nf_net_clear_buffers(n: number, mask: number): void;
   nf_net_set_probes(n: number, ptr: number, count: number): void;
+  nf_net_set_input(n: number, ptr: number, count: number, amplitude: number): number;
+  nf_net_clear_eligibility(n: number): void;
+  nf_net_set_reward_gate(n: number, ptr: number, count: number): number;
   nf_net_set_sync_group(n: number, lo: number, hi: number): void;
   nf_net_telemetry(n: number): number;
   nf_net_neuron_detail(n: number, i: number): number;
@@ -434,6 +437,43 @@ export class EngineNetwork {
 
   setPlasticity(enabled: boolean, rateScale: number): void {
     if (this.mod.exports.nf_net_set_plasticity(this.h(), enabled ? 1 : 0, rateScale) < 0) throw this.mod.error();
+  }
+
+  /**
+   * Rate-coded Poisson input: neuron `ids[k]` receives events at `ratesHz[k]`,
+   * each adding `amplitude` to its synaptic current. Replaces any previous input;
+   * an empty list clears it. Returns the number of neurons receiving input.
+   */
+  setInput(ids: ArrayLike<number>, ratesHz: ArrayLike<number>, amplitude: number): number {
+    const count = ids.length;
+    if (ratesHz.length !== count) throw new EngineError('input: ids and rates must have the same length');
+    const buf = new ArrayBuffer(count * 8);
+    new Uint32Array(buf, 0, count).set(ids);
+    new Float32Array(buf, count * 4, count).set(ratesHz);
+    const r = this.mod.withBytes(new Uint8Array(buf), (p) => this.mod.exports.nf_net_set_input(this.h(), p, count, amplitude));
+    if (r < 0) throw this.mod.error();
+    return r;
+  }
+
+  clearInput(): void {
+    this.mod.exports.nf_net_set_input(this.h(), 0, 0, 0);
+  }
+
+  /**
+   * Fraction of the neuromodulator reaching each projection's reward-modulated
+   * synapses (one value in [0, 1] per projection). An empty list opens all.
+   */
+  setRewardGate(gates: ArrayLike<number>): void {
+    const bytes = new Uint8Array(new Float32Array(gates).buffer);
+    const r = gates.length === 0
+      ? this.mod.exports.nf_net_set_reward_gate(this.h(), 0, 0)
+      : this.mod.withBytes(bytes, (p) => this.mod.exports.nf_net_set_reward_gate(this.h(), p, gates.length));
+    if (r < 0) throw this.mod.error();
+  }
+
+  /** Clears eligibility traces and the neuromodulator (between trials of a task). */
+  clearEligibility(): void {
+    this.mod.exports.nf_net_clear_eligibility(this.h());
   }
 
   injectReward(amount: number): void {

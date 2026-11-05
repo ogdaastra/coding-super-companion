@@ -366,3 +366,71 @@ pub(crate) fn apply(net: &mut Network, t: u64, slot: usize) {
     stimuli.retain(|s| !s.finished);
     net.stimuli = stimuli;
 }
+
+/// Rate-coded input: independent Poisson events for each listed neuron, each at
+/// its own rate, for driving a population with a pattern such as an image. Every
+/// event delivers `amplitude` to the neuron's excitatory synaptic current (or, if
+/// negative, inhibitory), exactly like a synaptic event. The input stays on until
+/// replaced or cleared. It is not part of snapshots.
+#[derive(Debug, Clone, Default)]
+pub struct InputLayer {
+    pub(crate) ids: Vec<u32>,
+    /// Event probability per step.
+    pub(crate) p: Vec<f32>,
+    pub(crate) amplitude: f32,
+    /// Events delivered since the input was set.
+    pub events: u64,
+}
+
+impl Network {
+    /// Replaces the rate-coded input: neuron `ids[k]` receives Poisson events at
+    /// `rates_hz[k]`. Neurons with rate 0 are skipped. An empty list clears the
+    /// input. Returns the number of neurons receiving input.
+    pub fn set_input(&mut self, ids: &[u32], rates_hz: &[f32], amplitude: f32) -> Result<usize, ConfigError> {
+        if ids.len() != rates_hz.len() {
+            return Err(err("input", "ids and rates must have the same length"));
+        }
+        if !amplitude.is_finite() || amplitude.abs() > 1000.0 {
+            return Err(err("input.amplitude", "must be a finite number with magnitude ≤ 1000"));
+        }
+        let mut layer = InputLayer { amplitude, ..InputLayer::default() };
+        for (&i, &r) in ids.iter().zip(rates_hz) {
+            if i as usize >= self.n {
+                return Err(err("input.ids", format!("neuron {i} does not exist")));
+            }
+            if !(r.is_finite() && (0.0..=10_000.0).contains(&r)) {
+                return Err(err("input.rates", "must be between 0 and 10000 Hz"));
+            }
+            if r > 0.0 {
+                layer.ids.push(i);
+                layer.p.push((r * self.dt / 1000.0).min(1.0));
+            }
+        }
+        let count = layer.ids.len();
+        self.input = layer;
+        Ok(count)
+    }
+
+    pub fn clear_input(&mut self) {
+        self.input = InputLayer::default();
+    }
+
+    pub fn input(&self) -> &InputLayer {
+        &self.input
+    }
+}
+
+/// Delivers this step's rate-coded input events (before integration).
+pub(crate) fn apply_input(net: &mut Network, slot: usize) {
+    if net.input.ids.is_empty() {
+        return;
+    }
+    let a = net.input.amplitude;
+    let base = slot * net.n * 2 + (a < 0.0) as usize;
+    for k in 0..net.input.ids.len() {
+        if net.rng.next_f32() < net.input.p[k] {
+            net.ring[base + 2 * net.input.ids[k] as usize] += a;
+            net.input.events += 1;
+        }
+    }
+}

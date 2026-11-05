@@ -443,6 +443,96 @@ export function learningLab(neurons: number, seed = 1): BrainConfig {
   };
 }
 
+/** Tunable constants of the Vision Lab network (calibrated in tests/unit/vision.test.ts). */
+export const VISION = {
+  /** Retina neurons per image feature (pixel × colour channel). */
+  retinaPerFeature: 2,
+  outputCount: 120,
+  /**
+   * Retina → visual cortex, per cone type: weight, inputs per cortex neuron from
+   * each cone type, and the weights' relative spread. The spread makes each
+   * cortex neuron prefer some colours over others, so colour survives.
+   */
+  inWeight: 0.55,
+  inDegree: 8,
+  inWeightSpread: 0.7,
+  inSpread: 0.12,
+  /** Cortex → output (the learned, reward-modulated pathway). */
+  readWeight: 0.32,
+  readDegree: 90,
+  readMax: 1.2,
+  /** Cross-inhibition between output populations (winner-take-all). */
+  crossWeight: 1.6,
+  crossDegree: 14,
+};
+
+/** Region ids of the Vision Lab network: three cone mosaics (red, green, blue). */
+export const visionRegion = { cones: ['cones_r', 'cones_g', 'cones_b'], cortex: 'v1', output: (k: number) => `out${k}` } as const;
+
+/**
+ * Vision Lab: a retina receiving images, a visual cortex, and one output
+ * population per class whose input synapses learn by reward-modulated STDP.
+ * `classes` names the output populations (2 to 4).
+ */
+export function visionLab(neurons: number, seed = 1, classes: readonly string[] = ['Class A', 'Class B']): BrainConfig {
+  const names = classes.slice(0, 4);
+  while (names.length < 2) names.push(`Class ${String.fromCharCode(65 + names.length)}`);
+  const perCone = Math.round(256 * VISION.retinaPerFeature);
+  const retina = 3 * perCone;
+  const outputs = names.length * VISION.outputCount;
+  const cortex = Math.max(1000, neurons - retina - outputs);
+  const palette = ['#ff6b6b', '#3ee6c1', '#ffb547', '#b48cff'];
+  const cones: [string, string, string][] = [
+    ['Red cones', '#ff5a5a', 'red'],
+    ['Green cones', '#5ae67a', 'green'],
+    ['Blue cones', '#5a8cff', 'blue'],
+  ];
+  const specs: RegionSpec[] = [
+    // Three interleaved mosaics on one flat retina, each laid out as a 16×16 image.
+    ...cones.map(([name, color, channel], c): RegionSpec => ({
+      id: visionRegion.cones[c], name, color, share: perCone, excitatoryFraction: 1,
+      role: `Retina neurons that respond to ${channel} light, laid out as a 16×16 image.`,
+      // Silent without input: relays the image as spike rates.
+      exc: { bias: 0, noiseStd: 0.2, tauMs: 10, refractoryMs: 2 },
+      heterogeneity: 0.15,
+      shape: { center: [-120, 0, 0], radius: [5, 48, 48], warp: 0, clumping: 0 },
+    })),
+    {
+      id: visionRegion.cortex, name: 'Visual Cortex', color: '#8f7dff', share: cortex,
+      role: 'Receives the retina topographically; neighbouring pixels drive neighbouring neurons.',
+      exc: { bias: 0.3, noiseStd: 0.8 },
+      shape: { center: [0, 0, 0], radius: [36, 52, 52], warp: 0.15, clumping: 0.1 },
+    },
+    ...names.map((name, k): RegionSpec => ({
+      id: visionRegion.output(k), name, color: palette[k], share: VISION.outputCount,
+      role: `Answers "${name}" by firing. Its inputs from the visual cortex learn from reward and punishment.`,
+      exc: { bias: 0.3, noiseStd: 0.8 },
+      shape: { center: [110, 60 - (120 * k) / Math.max(1, names.length - 1), 0], radius: [14, 14, 14] },
+    })),
+  ];
+  // `regions` distributes `total` by share; shares here are exact counts.
+  const rs = regions(retina + cortex + outputs, specs);
+  const read: ProjectionPlasticity = { enabled: true, rule: 'reward', aPlus: 0.012, aMinus: 0.006, wMin: 0, wMax: VISION.readMax };
+  const p = projections(rs, [
+    ...visionRegion.cones.map((cone): ProjSpec => ({ from: cone, source: 'excitatory', to: visionRegion.cortex, inDegree: VISION.inDegree, weight: VISION.inWeight, weightStd: VISION.inWeight * VISION.inWeightSpread, delay: [1, 3], topology: 'topographic', spread: VISION.inSpread })),
+    ...recurrent(visionRegion.cortex, 16, 14, 0.22, 1.4, 0.3),
+    ...names.flatMap((_, k): ProjSpec[] => [
+      { from: visionRegion.cortex, source: 'excitatory', to: visionRegion.output(k), target: 'excitatory', inDegree: VISION.readDegree, weight: VISION.readWeight, delay: [2, 4], plasticity: read },
+      ...recurrent(visionRegion.output(k), 8, 10, 0.25, 1.2, 0.6),
+      ...names
+        .map((__, j) => j)
+        .filter((j) => j !== k)
+        .map((j): ProjSpec => ({ from: visionRegion.output(k), source: 'inhibitory', to: visionRegion.output(j), target: 'excitatory', inDegree: VISION.crossDegree, weight: VISION.crossWeight, delay: [0.5, 1.5] })),
+    ]),
+  ]);
+  return {
+    ...base('Vision Lab', 'vision-lab', `A retina, a visual cortex and ${names.length} answer populations (${names.join(', ')}) trained by reward to recognise images.`, seed),
+    plasticity: { ...DEFAULT_PLASTICITY, enabled: true, eligibilityTauMs: 300, modulatorTauMs: 100, rewardRate: 4, wMax: VISION.readMax },
+    regions: rs,
+    projections: p,
+  };
+}
+
 export interface PresetInfo {
   id: string;
   name: string;
@@ -461,6 +551,7 @@ export const PRESETS: readonly PresetInfo[] = [
   { id: 'highly-connected', name: 'Highly Connected', description: 'One third of the neurons with hundreds of synapses each.', defaultTier: 'medium', create: highlyConnected },
   { id: 'sync-lab', name: 'Synchronisation Lab', description: 'Two oscillation-prone populations with shared and private inputs.', defaultTier: 'small', create: synchronisationLab },
   { id: 'learning-lab', name: 'Learning Lab', description: 'Two inputs, a plastic association population and a reward-trained read-out.', defaultTier: 'small', maxNeurons: 12_000, create: learningLab },
+  { id: 'vision-lab', name: 'Vision Lab', description: 'A retina, a visual cortex and answer populations trained by reward to recognise images. Use it from the Laboratory.', defaultTier: 'small', maxNeurons: 25_000, create: visionLab },
 ];
 
 export function presetById(id: string): PresetInfo | undefined {

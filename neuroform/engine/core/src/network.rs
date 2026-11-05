@@ -229,6 +229,7 @@ pub struct Network {
 
     pub(crate) plasticity: PlasticityState,
     pub(crate) stimuli: Vec<Stimulus>,
+    pub(crate) input: crate::stimulus::InputLayer,
     pub(crate) next_stimulus_id: u32,
 
     pub(crate) rng: Rng,
@@ -346,6 +347,7 @@ impl Network {
             tau_inh: parts.tau_inh,
             plasticity: parts.plasticity,
             stimuli: Vec::new(),
+            input: crate::stimulus::InputLayer::default(),
             next_stimulus_id: 1,
             rng: Rng::new(parts.seed as u64, crate::build::DYNAMICS_STREAM),
             normal: crate::rng::normal_table(),
@@ -442,6 +444,7 @@ impl Network {
         self.tw.events_delivered += self.slot_events[slot];
         self.slot_events[slot] = 0;
         crate::stimulus::apply(self, t, slot);
+        crate::stimulus::apply_input(self, slot);
 
         let t1 = if profiling { self.now() } else { 0.0 };
         self.integrate(t, slot);
