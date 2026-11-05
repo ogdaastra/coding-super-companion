@@ -1,0 +1,20 @@
+[workspace]
+resolver = "2"
+members = ["core", "wasm"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+debug = false
+strip = true
+
+# Fast, still-optimised test builds: the simulation tests run thousands of steps.
+[profile.test]
+opt-level = 2

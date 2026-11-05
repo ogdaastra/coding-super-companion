@@ -1,0 +1,4 @@
+[build]
+  base = "neuroform"
+  command = "sh scripts/ensure-rust.sh && PATH=\"$HOME/.cargo/bin:$PATH\" npm run build"
+  publish = "dist"

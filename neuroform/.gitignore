@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dist-single/
+engine/target/
+src/engine/generated/
+test-results/
+playwright-report/
+bench/results/*.tmp.json
+*.log
+scratch/

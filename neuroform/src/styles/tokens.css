@@ -1,0 +1,77 @@
+/* NEUROFORM design tokens. The renderer mirrors the colour values in src/render/palette.ts. */
+
+@font-face { font-family: 'Inter'; src: url('../assets/fonts/Inter-Regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Inter'; src: url('../assets/fonts/Inter-Medium.woff2') format('woff2'); font-weight: 500; font-display: swap; }
+@font-face { font-family: 'Inter'; src: url('../assets/fonts/Inter-SemiBold.woff2') format('woff2'); font-weight: 600; font-display: swap; }
+@font-face { font-family: 'Inter Display'; src: url('../assets/fonts/InterDisplay-Light.woff2') format('woff2'); font-weight: 300; font-display: swap; }
+@font-face { font-family: 'JetBrains Mono'; src: url('../assets/fonts/JetBrainsMono-Regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'JetBrains Mono'; src: url('../assets/fonts/JetBrainsMono-Medium.woff2') format('woff2'); font-weight: 500; font-display: swap; }
+
+:root {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --bg: #02040a;
+  --bg-raise: #060b16;
+  --glass: rgba(7, 12, 24, 0.66);
+  --glass-strong: rgba(6, 10, 20, 0.86);
+  --glass-hi: rgba(14, 22, 42, 0.72);
+  --hairline: rgba(150, 180, 255, 0.11);
+  --hairline-strong: rgba(150, 180, 255, 0.2);
+  --inner-light: rgba(190, 215, 255, 0.06);
+
+  /* Text */
+  --text: #dfe8f7;
+  --text-2: #9aa8c2;
+  --text-3: #66738d;
+  --text-4: #434e66;
+
+  /* Signal colours */
+  --cyan: #38e6ff;
+  --cyan-dim: #1d7f99;
+  --violet: #9b7bff;
+  --ultraviolet: #c08cff;
+  --magenta: #ff4fd8;
+  --amber: #ffb547;
+  --white: #eef6ff;
+  --slate: #5d6b85;
+  --danger: #ff6b7d;
+  --ok: #4be3a8;
+
+  /* Type */
+  --font-ui: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Inter Display', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  --fs-micro: 10px;
+  --fs-label: 10.5px;
+  --fs-small: 11.5px;
+  --fs-body: 12.5px;
+  --fs-title: 14px;
+  --fs-num: 22px;
+  --fs-num-xl: 34px;
+  --tracking-label: 0.14em;
+
+  /* Shape & motion */
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --blur: 18px;
+  --ease: cubic-bezier(0.22, 0.8, 0.24, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --t-fast: 140ms;
+  --t-med: 260ms;
+  --t-slow: 520ms;
+
+  --topbar-h: 52px;
+  --dock-h: 58px;
+  --gutter: 14px;
+  --panel-w: 340px;
+}
+
+@media (max-width: 720px) {
+  :root {
+    --gutter: 10px;
+    --topbar-h: 48px;
+    --dock-h: 54px;
+  }
+}

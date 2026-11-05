@@ -1,0 +1,53 @@
+name: NEUROFORM
+
+on:
+  push:
+    paths: ['neuroform/**', '.github/workflows/neuroform.yml']
+  pull_request:
+    paths: ['neuroform/**', '.github/workflows/neuroform.yml']
+
+defaults:
+  run:
+    working-directory: neuroform
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: neuroform/engine
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: neuroform/package-lock.json
+      - run: npm ci
+      - name: Engine tests (native)
+        run: npm run test:engine
+      - name: Type check
+        run: npm run typecheck
+      - name: Unit and integration tests (WebAssembly engine in Node)
+        run: npm test
+      - name: Production build
+        run: npm run build
+      - name: Single-file build (dist-single/NEUROFORM.html)
+        run: npm run build:single
+      - name: Engine benchmark (WebAssembly, 1 s per size)
+        run: node scripts/bench-engine.ts 1 2000 5000 10000 25000
+      - name: End-to-end tests
+        run: |
+          npx playwright install --with-deps chromium
+          npx playwright test
+      - uses: actions/upload-artifact@v4
+        with:
+          name: neuroform-dist
+          path: neuroform/dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: neuroform-single-file
+          path: neuroform/dist-single/NEUROFORM.html
