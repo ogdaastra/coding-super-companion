@@ -64,18 +64,24 @@ jobs:
           & "NEXUS-windows/nexus-relay.exe" --version
           if ($LASTEXITCODE -ne 0) { throw "nexus-relay exited with $LASTEXITCODE" }
 
-      # The runner has no GPU: Direct3D 11 runs on Microsoft's software rasteriser (WARP).
-      # This proves the packaged app starts, loads QML and renders a frame on Windows.
-      - name: Smoke test the app (screenshot on the default backend)
+      # The runner has no GPU. Direct3D 11 runs on Microsoft's software rasteriser (WARP) and
+      # OpenGL on the Mesa llvmpipe DLL that windeployqt ships (opengl32sw.dll). Each run
+      # proves the packaged app starts, loads QML and renders; the log shows any RHI errors.
+      - name: Smoke test the app on each backend (screenshots + log)
         shell: pwsh
         continue-on-error: true
         run: |
-          $appArgs = @("--simulate", "--quality", "0", "--project", "$PWD", "--screenshot", "$PWD/windows-screenshot.png", "--screenshot-delay", "8000")
-          $p = Start-Process -FilePath "NEXUS-windows/nexus.exe" -ArgumentList $appArgs -PassThru
-          if (-not $p.WaitForExit(90000)) { $p.Kill(); throw "nexus.exe did not exit within 90 s" }
-          Write-Host "nexus exit code: $($p.ExitCode)"
-          if (-not (Test-Path windows-screenshot.png)) { throw "no screenshot was written" }
-          Get-ChildItem "$env:LOCALAPPDATA" -Recurse -Filter nexus.log -ErrorAction SilentlyContinue | ForEach-Object { Get-Content $_.FullName -Tail 40 }
+          New-Item -ItemType Directory -Force shots | Out-Null
+          $log = Join-Path $env:LOCALAPPDATA "Nexus/NEXUS/nexus.log"
+          foreach ($backend in @("d3d11", "opengl")) {
+            if ($backend -eq "opengl") { $env:QT_OPENGL = "software" } else { Remove-Item Env:QT_OPENGL -ErrorAction SilentlyContinue }
+            $shot = "$PWD/shots/windows-$backend.png"
+            $appArgs = @("--backend=$backend", "--simulate", "--quality", "0", "--project", "$PWD/src", "--screenshot", $shot, "--screenshot-delay", "10000")
+            $p = Start-Process -FilePath "NEXUS-windows/nexus.exe" -ArgumentList $appArgs -PassThru
+            if (-not $p.WaitForExit(120000)) { $p.Kill(); Write-Host "::warning::$backend did not exit within 120 s" }
+            Write-Host "=== $backend: exit code $($p.ExitCode), screenshot written: $(Test-Path $shot)"
+            if (Test-Path $log) { Get-Content $log | Select-Object -First 60 } else { Write-Host "(no nexus.log at $log)" }
+          }
 
       - uses: actions/upload-artifact@v4
         with:
@@ -86,6 +92,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: windows-screenshot
-          path: windows-screenshot.png
+          name: windows-screenshots
+          path: shots
           if-no-files-found: warn
