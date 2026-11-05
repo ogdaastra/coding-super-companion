@@ -1,38 +1,86 @@
 {
   "meta": {
-    "date": "2026-11-05T07:25:45.742Z",
+    "date": "2026-11-05T07:29:15.354Z",
     "node": "v22.23.4",
     "cpu": "Intel(R) Xeon(R) Processor @ 2.80GHz",
     "cores": 4,
     "platform": "linux x64",
-    "secondsPerSize": 3,
+    "secondsPerSize": 4,
     "preset": "observatory",
     "timestepMs": 0.5
   },
   "rows": [
     {
+      "neurons": 2000,
+      "synapses": 122052,
+      "buildMs": 108,
+      "msPerSimSecond": 54,
+      "realtimeFactor": 18.608,
+      "spikesPerSimSecond": 9785,
+      "eventsPerWallSecond": 11602850,
+      "meanRateHz": 4.89,
+      "engineMiB": 3.6,
+      "wasmHeapMiB": 5
+    },
+    {
+      "neurons": 5000,
+      "synapses": 310677,
+      "buildMs": 148,
+      "msPerSimSecond": 138,
+      "realtimeFactor": 7.245,
+      "spikesPerSimSecond": 29032,
+      "eventsPerWallSecond": 13642617,
+      "meanRateHz": 5.81,
+      "engineMiB": 9.2,
+      "wasmHeapMiB": 10.8
+    },
+    {
       "neurons": 10000,
       "synapses": 622299,
-      "buildMs": 604,
-      "msPerSimSecond": 397,
-      "realtimeFactor": 2.518,
-      "spikesPerSimSecond": 70493,
-      "eventsPerWallSecond": 11397726,
-      "meanRateHz": 7.05,
+      "buildMs": 270,
+      "msPerSimSecond": 322,
+      "realtimeFactor": 3.105,
+      "spikesPerSimSecond": 70727,
+      "eventsPerWallSecond": 14106950,
+      "meanRateHz": 7.07,
       "engineMiB": 18.4,
       "wasmHeapMiB": 20.6
     },
     {
       "neurons": 25000,
       "synapses": 1557423,
-      "buildMs": 736,
-      "msPerSimSecond": 1538,
-      "realtimeFactor": 0.65,
-      "spikesPerSimSecond": 222865,
-      "eventsPerWallSecond": 9339940,
-      "meanRateHz": 8.91,
+      "buildMs": 896,
+      "msPerSimSecond": 1034,
+      "realtimeFactor": 0.967,
+      "spikesPerSimSecond": 223370,
+      "eventsPerWallSecond": 13927247,
+      "meanRateHz": 8.93,
       "engineMiB": 46.1,
       "wasmHeapMiB": 49.4
+    },
+    {
+      "neurons": 50000,
+      "synapses": 3116027,
+      "buildMs": 1578,
+      "msPerSimSecond": 2542,
+      "realtimeFactor": 0.393,
+      "spikesPerSimSecond": 421559,
+      "eventsPerWallSecond": 10731687,
+      "meanRateHz": 8.43,
+      "engineMiB": 92.2,
+      "wasmHeapMiB": 97.9
+    },
+    {
+      "neurons": 100000,
+      "synapses": 6234471,
+      "buildMs": 3617,
+      "msPerSimSecond": 5157,
+      "realtimeFactor": 0.194,
+      "spikesPerSimSecond": 956133,
+      "eventsPerWallSecond": 11979037,
+      "meanRateHz": 9.56,
+      "engineMiB": 184.4,
+      "wasmHeapMiB": 192.4
     }
   ]
 }

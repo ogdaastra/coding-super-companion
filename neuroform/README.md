@@ -73,6 +73,7 @@ npm run test:e2e      # Playwright: the built application in Chromium
 ```bash
 npm run bench:engine            # WebAssembly engine in Node, all tiers
 npm run bench:native            # same engine compiled natively, for comparison
+npm run bench:browser           # shipped build in headless Chromium (after npm run build)
 npm run probe all 10000 2000    # firing rates per region for every preset
 ```
 
@@ -111,8 +112,8 @@ targets; what a given machine sustains is measured, not promised.
 | Small | 5,000 | ≈ 0.3 M |
 | Medium | 10,000 | ≈ 0.6 M |
 | Large | 25,000 | ≈ 1.6 M |
-| Experimental | 50,000 | ≈ 3.2 M |
-| Extreme | 100,000 | ≈ 6.5 M |
+| Experimental | 50,000 | ≈ 3.1 M |
+| Extreme | 100,000 | ≈ 6.2 M |
 
 On first launch NEUROFORM picks Micro, Small or Medium from the device's core
 count and memory. Measured performance per tier, and the targets derived from it,

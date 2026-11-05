@@ -325,7 +325,7 @@ pub(crate) fn on_spikes(net: &mut Network, t: u64) {
         }
     }
 
-    if ps.any_reward && (t + 1) % ps.batch_steps as u64 == 0 {
+    if ps.any_reward && (t + 1).is_multiple_of(ps.batch_steps as u64) {
         let m = ps.modulator;
         let k = ps.reward_rate * eta * m * ps.batch_seconds;
         let decay = ps.elig_decay_batch;

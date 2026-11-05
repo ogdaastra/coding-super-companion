@@ -189,6 +189,14 @@ Neither is required for, or allowed to compromise, the browser build.
   second at 25k neurons). The hot loops are branchy (thresholds, refractory
   state) and memory-bound (scattered event writes), so a single baseline module is
   shipped for maximum compatibility.
+* **Unchecked indexing in exactly one loop.** Spike propagation (the scatter
+  of every spike into the delay ring) indexes without bounds checks. Every index
+  it uses is bounded by invariants that `Network::assemble` asserts once per
+  synapse in all build profiles (target < neurons, delay < ring slots,
+  projection < projections). The topology never changes after assembly, and the
+  table lengths are asserted on every call. Measured gain: 10k neurons 2.2× → 3.4×
+  real time, 25k 0.65× → 0.95× (see `PERFORMANCE.md`). All other code uses checked
+  indexing.
 * **WebGPU compute: investigated, not used for the simulation.** Per-neuron
   integration is GPU-friendly, but spike propagation is a sparse scatter with
   data-dependent fan-out and would need atomic float accumulation (fixed-point

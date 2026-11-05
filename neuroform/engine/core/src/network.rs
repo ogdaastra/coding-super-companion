@@ -261,6 +261,16 @@ impl Network {
     pub(crate) fn assemble(parts: Parts) -> Network {
         let n = parts.neurons.len();
         let s = parts.target.len();
+        // Structural invariants the unchecked propagation loop relies on. Checked
+        // once here, in every build profile; the topology never changes afterwards
+        // (edits rebuild the network, snapshots restore state onto the same topology).
+        assert!(parts.row_ptr.len() == n + 1 && parts.row_ptr[n] as usize == s, "CSR row pointers do not match the synapse count");
+        assert!(parts.row_ptr.windows(2).all(|w| w[0] <= w[1]), "CSR row pointers are not monotonic");
+        assert!(parts.weight.len() == s && parts.delay.len() == s && parts.syn_proj.len() == s, "synapse arrays differ in length");
+        assert!((1..=256).contains(&parts.ring_slots), "ring slot count out of range");
+        assert!(parts.target.iter().all(|&t| (t as usize) < n), "synapse target out of range");
+        assert!(parts.delay.iter().all(|&d| (d as usize) < parts.ring_slots), "synaptic delay exceeds the event ring");
+        assert!(parts.syn_proj.iter().all(|&p| (p as usize) < parts.projections.len()), "synapse projection out of range");
         let mut in_ptr = vec![0u32; n + 1];
         for &t in &parts.target {
             in_ptr[t as usize + 1] += 1;
@@ -551,19 +561,41 @@ impl Network {
         let slot_events = &mut self.slot_events;
         let ring = &mut self.ring;
         let mut scheduled = 0u64;
+        // Per-delay event counts for this step, folded into the slots afterwards.
+        let mut per_delay = [0u64; 256];
+        // Cheap per-call checks; the per-synapse invariants are checked in `assemble`.
+        assert!(gains.len() == self.projections.len() && chans.len() == gains.len() && tx.len() == gains.len());
+        assert!(offsets.len() == slots && ring.len() == slots * n2 && slots <= per_delay.len());
+        debug_assert!(self.target.iter().all(|&t| (t as usize) < self.n));
+        debug_assert!(self.delay.iter().all(|&d| (d as usize) < slots));
+        debug_assert!(self.syn_proj.iter().all(|&p| (p as usize) < gains.len()));
         for &j in &self.fired {
             let (lo, hi) = (row_ptr[j as usize] as usize, row_ptr[j as usize + 1] as usize);
+            assert!(hi <= target.len() && hi <= weight.len() && hi <= delay.len() && hi <= syn_proj.len());
             for s in lo..hi {
-                let pj = syn_proj[s] as usize;
-                let g = gains[pj];
-                if g == 0.0 {
-                    continue;
+                // SAFETY: `s < hi ≤ len` (asserted above). `assemble` asserts
+                // target < n, delay < ring_slots and projection < projections.len()
+                // for every synapse, and the table lengths are asserted above, so
+                // every index below is in bounds:
+                // offsets[d] + 2·target + channel < slots · n · 2 = ring.len().
+                unsafe {
+                    let pj = *syn_proj.get_unchecked(s) as usize;
+                    let g = *gains.get_unchecked(pj);
+                    if g == 0.0 {
+                        continue;
+                    }
+                    let d = *delay.get_unchecked(s) as usize;
+                    let idx = *offsets.get_unchecked(d) + 2 * *target.get_unchecked(s) as usize + *chans.get_unchecked(pj) as usize;
+                    *ring.get_unchecked_mut(idx) += *weight.get_unchecked(s) * g;
+                    *per_delay.get_unchecked_mut(d) += 1;
+                    *tx.get_unchecked_mut(pj) += 1;
                 }
-                let d = delay[s] as usize;
-                ring[offsets[d] + 2 * target[s] as usize + chans[pj] as usize] += weight[s] * g;
-                slot_events[ids[d]] += 1;
-                tx[pj] += 1;
                 scheduled += 1;
+            }
+        }
+        if scheduled > 0 {
+            for d in 1..slots {
+                slot_events[ids[d]] += per_delay[d];
             }
         }
         self.tw.events_scheduled += scheduled;
