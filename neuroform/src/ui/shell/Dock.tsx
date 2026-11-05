@@ -37,7 +37,7 @@ export function Dock() {
         </span>
       </div>
       <div className="dock__sep hide-sm" />
-      <div className="speed" title="Simulation speed (simulated time per real time). [ and ] to change.">
+      <div className="speed" title="Simulation speed (simulated time per real time). − and + to change.">
         <span className="label">Speed</span>
         <input
           className="range"
