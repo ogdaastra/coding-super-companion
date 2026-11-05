@@ -23,13 +23,15 @@ export interface Platform {
 }
 
 /**
+ * - `file`: running from a downloaded single-file copy (`file://`); it works
+ *   offline as it is and cannot be installed.
  * - `app`: running as an installed app, in its own window.
  * - `available`: the browser offers installation now (`install()` will prompt).
  * - `installed`: installed from this page during this visit.
  * - `unavailable`: the browser does not offer installation here (unsupported
  *   browser, already installed, or its criteria are not met yet).
  */
-export type InstallState = 'app' | 'available' | 'installed' | 'unavailable';
+export type InstallState = 'file' | 'app' | 'available' | 'installed' | 'unavailable';
 
 /** Chromium's install prompt event (not in the standard DOM typings). */
 interface BeforeInstallPromptEvent extends Event {
@@ -42,10 +44,12 @@ class WebPlatform implements Platform {
   private deferredPrompt: BeforeInstallPromptEvent | null = null;
   private justInstalled = false;
   private readonly runningAsApp: boolean = false;
+  private readonly runningFromFile: boolean = false;
   private readonly installListeners = new Set<(state: InstallState) => void>();
 
   constructor() {
     if (typeof window === 'undefined') return;
+    this.runningFromFile = location.protocol === 'file:';
     const mode = (q: string) => window.matchMedia?.(`(display-mode: ${q})`).matches === true;
     this.runningAsApp = mode('standalone') || mode('window-controls-overlay') || mode('minimal-ui') || (navigator as { standalone?: boolean }).standalone === true;
     // The browser may offer installation before the interface exists, so the
@@ -63,6 +67,7 @@ class WebPlatform implements Platform {
   }
 
   installState(): InstallState {
+    if (this.runningFromFile) return 'file';
     if (this.runningAsApp) return 'app';
     if (this.justInstalled) return 'installed';
     return this.deferredPrompt ? 'available' : 'unavailable';
@@ -149,6 +154,8 @@ class WebPlatform implements Platform {
   async registerServiceWorker(): Promise<'registered' | 'unsupported' | 'skipped' | 'failed'> {
     if (!('serviceWorker' in navigator)) return 'unsupported';
     if (import.meta.env.DEV) return 'skipped';
+    // A page opened from disk is already local; service workers need a website.
+    if (location.protocol === 'file:') return 'skipped';
     try {
       await navigator.serviceWorker.register('./sw.js', { scope: './' });
       return 'registered';

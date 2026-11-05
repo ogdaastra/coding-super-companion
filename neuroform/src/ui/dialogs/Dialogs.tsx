@@ -158,7 +158,7 @@ function SettingsDialog() {
           <dt>WebGPU API</dt><dd>{caps.webgpu ? 'available' : 'not available'}</dd>
           <dt>Cross-origin isolated</dt><dd>{caps.isolated ? 'yes' : 'no (not required)'}</dd>
           <dt>SharedArrayBuffer</dt><dd>{caps.sab ? 'available' : 'not available (not required)'}</dd>
-          <dt>Offline cache</dt><dd>{caps.sw ? 'active' : import.meta.env.DEV ? 'disabled in development' : 'installs after first load'}</dd>
+          <dt>Offline cache</dt><dd>{location.protocol === 'file:' ? 'not needed (local file)' : caps.sw ? 'active' : import.meta.env.DEV ? 'disabled in development' : 'installs after first load'}</dd>
           <dt>Logical cores</dt><dd>{navigator.hardwareConcurrency ?? '—'}</dd>
         </dl>
       </Section>
@@ -170,6 +170,7 @@ function DesktopAppSection() {
   const app = useApp();
   const install = useAppState((s) => s.install);
   const text: Record<typeof install, string> = {
+    file: 'You are running the downloaded single-file version. It already works offline: keep NEUROFORM.html anywhere, for example on your desktop, and double-click it to open. Projects are saved in this browser.',
     app: 'Running as an installed app in its own window. Everything works offline; when you are online, updates are picked up automatically.',
     installed: 'Installed. Open NEUROFORM from your desktop, Start menu, Dock or Applications folder. It works offline.',
     available: 'Install NEUROFORM as an app: it gets its own window and a desktop or Start-menu icon, and works offline. Your projects stay in this browser profile.',

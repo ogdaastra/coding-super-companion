@@ -106,6 +106,26 @@ When the installed app is online it picks up new versions automatically. Project
 snapshots and recordings are stored on your machine, in the profile of the
 browser you installed the app from.
 
+### Single-file version
+
+`npm run build:single` produces `dist-single/NEUROFORM.html`: the whole
+application in one 2.4 MB file, with the engine, simulation worker, styles and
+fonts embedded. Copy it anywhere (for example to the desktop) and double-click it.
+It runs from disk with no server, no installation and no network, which is useful
+where the website is unreachable. It is tested in Chromium (Chrome and Edge) by
+opening it from disk.
+
+Simulation and rendering are the same as the website. The engine benchmark
+inside the file matches the website build within run-to-run noise. The
+differences:
+
+* **Opening it:** it opens in a browser tab rather than its own window, and cannot
+  be installed.
+* **Updates:** it does not update itself. Download a new file for a new version.
+* **Saved work:** projects are stored in the browser, separately from the website
+  version. Move them with Export and Import. In Firefox, opening the file from
+  another location may not show earlier projects.
+
 ## Using NEUROFORM
 
 * **Navigate**: drag to orbit, right-drag (or Shift-drag) to pan, scroll or pinch to

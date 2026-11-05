@@ -4,7 +4,7 @@
  * its methods and read `store`; they never talk to the worker or renderer directly.
  */
 
-import wasmUrl from '../engine/generated/neuroform_engine.wasm?url';
+import { createWorker, wasmUrl } from './workerFactory.ts';
 import { SimulationClient, RequestError } from '../sim/SimulationClient.ts';
 import type { BuiltNetwork, StimulusSpec } from '../sim/protocol.ts';
 import { BrainView, RendererUnavailableError, type BackendPreference } from '../render/BrainView.ts';
@@ -24,10 +24,6 @@ import { Playback } from './Playback.ts';
 import { ExperimentRunner } from '../experiments/ExperimentRunner.ts';
 
 export type { AppState };
-
-function createWorker(): Worker {
-  return new Worker(new URL('../sim/simulation.worker.ts', import.meta.url), { type: 'module' });
-}
 
 /** Picks a starting size from coarse hardware hints. */
 export function suggestedTier(): string {

@@ -2,7 +2,7 @@
   "name": "neuroform",
   "private": true,
   "version": "0.1.0",
-  "description": "NEUROFORM \u2014 a browser-native artificial brain observatory with a Rust/WebAssembly spiking-network engine.",
+  "description": "NEUROFORM — a browser-native artificial brain observatory with a Rust/WebAssembly spiking-network engine.",
   "type": "module",
   "engines": {
     "node": ">=22.18"
@@ -11,6 +11,7 @@
     "wasm": "node scripts/build-wasm.mjs",
     "dev": "node scripts/build-wasm.mjs && vite",
     "build": "node scripts/build-wasm.mjs && tsc --noEmit && vite build",
+    "build:single": "node scripts/build-wasm.mjs && tsc --noEmit && vite build --mode single",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "node scripts/build-wasm.mjs && vitest run",

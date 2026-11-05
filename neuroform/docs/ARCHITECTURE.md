@@ -183,6 +183,25 @@ app** (top bar, command palette, Settings → Desktop app) only while the state 
 instructions instead of a button. An end-to-end test asks Chromium for
 installability errors through the DevTools protocol (`Page.getInstallabilityErrors`).
 
+## Single-file build
+
+`vite build --mode single` (`npm run build:single`) emits
+`dist-single/NEUROFORM.html`, which runs when opened from disk (`file://`).
+
+* **Engine and worker:** the mode swaps `src/app/workerFactory.ts` for
+  `workerFactory.single.ts`. The engine is embedded as a `data:` URL that the
+  worker fetches. The worker code is embedded and started from a `blob:` URL as a
+  classic (IIFE) worker: Chromium refuses module workers from blob URLs on the
+  opaque origin of a local file.
+* **Inlining:** fonts are inlined as data URLs.
+  `scripts/vite-single-file-plugin.ts` inlines the entry script and the
+  stylesheet, escaping the sequences that would end a `<script>` element early.
+  It fails the build if any other file would remain.
+* **No website features:** there is no service worker or manifest. The `Platform`
+  layer reports install state `file`.
+* **Testing:** an end-to-end test opens the file from disk and checks the
+  engine, worker, simulation and storage.
+
 ## Desktop packaging (future)
 
 The web build is the product. A Tauri shell can load the same `dist/` folder.
