@@ -27,7 +27,10 @@ if (!existsSync(new URL('../dist/index.html', import.meta.url))) {
   process.exit(1);
 }
 
-const server = spawn('npx', ['vite', 'preview', '--port', String(port), '--strictPort'], { cwd: root, stdio: 'ignore' });
+// Run Vite's CLI directly with this Node binary (not through npx), so stopping
+// this one process stops the server.
+const vite = new URL('../node_modules/vite/bin/vite.js', import.meta.url).pathname;
+const server = spawn(process.execPath, [vite, 'preview', '--port', String(port), '--strictPort'], { cwd: root, stdio: 'ignore' });
 const stop = () => { if (!server.killed) server.kill(); };
 process.on('exit', stop);
 

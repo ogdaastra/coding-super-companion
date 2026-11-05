@@ -17,9 +17,9 @@ rates on real GPUs), the page says so rather than estimating it.
 ## Summary
 
 * On one 2.8 GHz server core the WebAssembly engine runs the Neural Observatory
-  brain **faster than real time up to 10,000 neurons** (≈ 3× at 10k) and **at
-  about real time at 25,000** (0.8–1.0×). 50,000 and 100,000 neurons run at
-  about 0.4× and 0.2× real time.
+  brain **faster than real time up to 10,000 neurons** (≈ 3× at 10k) and **just
+  below real time at 25,000** (0.7–1.0×, mean 0.83×). 50,000 and 100,000 neurons
+  run at about 0.4× and 0.2× real time.
 * The engine sustains **11–14 million synaptic events per second** at every size.
   Its cost is set by spikes × fan-out rather than by neuron count alone.
 * Browser figures (engine inside the application's own Web Worker in Chromium)
@@ -45,8 +45,11 @@ rates on real GPUs), the page says so rather than estimating it.
 | Network | Neural Observatory preset, seed 1, Δt = 0.5 ms, plasticity off |
 
 This is a virtual machine that was migrated to different hardware once during the
-measurements. Repeated runs differ by **up to ±15%**, so differences smaller than
-that are noise. A recent desktop CPU is typically faster per core than this
+measurements. Repeated runs of the same build differ by **up to ±20%**: twelve
+consecutive runs at 10k neurons ranged from 2.2× to 3.4×. Single runs are
+therefore only indicative. Comparisons between builds on this page use
+interleaved repeated runs (see
+[Optimisations](#optimisations-and-what-they-bought)). A recent desktop CPU is typically faster per core than this
 server part; a phone or low-power laptop will be slower.
 
 ## Simulation engine
@@ -69,6 +72,10 @@ above 1 is faster than biology, below 1 is slower.
 | 25,000 | 1.56 M | 896 ms | 1,034 | 0.97× | 13.9 M | 8.9 Hz | 46.1 MiB |
 | 50,000 | 3.12 M | 1,578 ms | 2,542 | 0.39× | 10.7 M | 8.4 Hz | 92.2 MiB |
 | 100,000 | 6.23 M | 3,617 ms | 5,157 | 0.19× | 12.0 M | 9.6 Hz | 184.4 MiB |
+
+These are single runs. Over six further runs of the same build, interleaved with
+other builds, 10k averaged **3.05×** (2.74–3.44×) and 25k averaged **0.83×**
+(0.72–0.91×).
 
 Larger networks fire slightly faster (4.9 → 9.6 Hz) because each neuron receives
 more recurrent input. Cost therefore grows a little faster than linearly with
@@ -139,7 +146,7 @@ own machine, open Performance → Run benchmark.
 | Micro | 2,000 | Real time with large headroom on any device that runs WebGPU or WebGL2 | 18.6× here |
 | Small | 5,000 | Real time on laptops and recent tablets | 7.3× here |
 | Medium | 10,000 | Real time on desktop and laptop CPUs (the default for the presets) | 3.1× here |
-| Large | 25,000 | About real time on a fast desktop core; below real time elsewhere | 0.8–1.0× here |
+| Large | 25,000 | About real time on a fast desktop core; below real time elsewhere | 0.7–1.0× here (mean 0.83×) |
 | Experimental | 50,000 | Below real time: 0.4× here | Measured |
 | Extreme | 100,000 | Well below real time: 0.2× here, 3.6 s to build, 184 MiB | Measured |
 
@@ -261,11 +268,14 @@ The simulation never runs on the main thread:
 
 ## Optimisations and what they bought
 
-Each change was measured before and after on the same machine.
+Each change was measured before and after on the same machine. Engine changes
+were compared with builds alternated run by run, so that drift in the VM affects
+both builds equally.
 
 | Change | Effect |
 |---|---|
-| Unchecked inner loop in spike propagation, with per-delay event counting (bounds validated once per call) | 10k: 2.2× → 3.4×; 25k: 0.65× → 0.95× real time |
+| Unchecked inner loop in spike propagation, with per-delay event counting | Six interleaved runs each: 10k 2.56× → **3.05×** (+19%); 25k 0.73× → **0.83×** (+14%) |
+| Release-mode structural checks for that loop (once per synapse at build, table lengths per call) | No measurable cost: twelve interleaved runs at 10k averaged 2.83× without and 2.99× with |
 | Nearest-neighbour search for local connectivity stops at the first occupied grid shell | 10k build: ≈ 1.5 s → ≈ 0.3 s |
 | WebAssembly SIMD (`+simd128`) | **No gain** (within noise at 25k), so it is not shipped |
 | WebGPU compute for the simulation | Investigated, not used; see [ARCHITECTURE.md](ARCHITECTURE.md#decisions) |
