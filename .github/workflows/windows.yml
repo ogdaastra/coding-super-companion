@@ -40,6 +40,7 @@ jobs:
       - name: Package a ready-to-run folder
         shell: pwsh
         run: |
+          Get-ChildItem build -Recurse -Include nexus.exe, nexus-relay.exe, nexus_mcp.py | ForEach-Object { $_.FullName }
           $out = "NEXUS-windows"
           New-Item -ItemType Directory -Force $out | Out-Null
           Copy-Item build/src/nexus.exe, build/src/nexus-relay.exe, build/src/nexus_mcp.py $out
