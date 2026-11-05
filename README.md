@@ -47,6 +47,14 @@ ctest --test-dir build --output-on-failure
 Linux also needs the usual xcb and Vulkan/GL development packages, for example
 `libxkbcommon-dev libxcb-cursor0 libvulkan-dev libgl1-mesa-dev`.
 
+### Windows without building
+
+Every push builds a ready-to-run folder on a GitHub Windows runner. Open the latest
+**Windows build** run under the repository's **Actions** tab, download the `NEXUS-windows`
+artifact, unzip it and run `nexus.exe`. The build is unsigned, so Windows SmartScreen asks
+for confirmation (**More info → Run anyway**). Warnings and errors are written to
+`%LOCALAPPDATA%\Nexus\NEXUS\nexus.log`.
+
 ## Run
 
 ```bash

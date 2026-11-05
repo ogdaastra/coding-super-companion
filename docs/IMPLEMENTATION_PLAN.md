@@ -12,8 +12,8 @@ environment: built, run, screenshot-reviewed, and unit-tested where noted.
 ## Phase 1 — Visual foundation ✅
 - ✅ CMake project, Qt 6.8, shaders compiled by `qt_add_shaders` (SPIR-V/GLSL/HLSL/MSL)
 - ✅ QRhi renderer in `QQuickRhiItem`: HDR RGBA16F target, MSAA with resolve, depth
-- ✅ Verified on **Vulkan** and **OpenGL**. Metal and D3D11/12 are supported by QRhi and the
-  shaders are compiled for them, but they have **not been run** (no hardware here).
+- ✅ Verified on **Vulkan** and **OpenGL** (Linux) and **Direct3D 11** (Windows CI, WARP). Metal and
+  D3D12 are supported by QRhi and the shaders are compiled for them, but they have **not been run**.
 - ✅ Procedural environment (nebula volume, starfield, core light, polar grid)
 - ✅ NEXUS CORE: nucleus plasma, geodesic shells, gyroscopic and partial rings, compass ticks
 - ✅ Ray-cast node impostors (per-kind materials) + additive halos (selection reticle, git
@@ -87,7 +87,11 @@ environment: built, run, screenshot-reviewed, and unit-tested where noted.
 - ✅ Screenshot review passes; several layout, label and notification issues fixed
 - 🟡 Performance measured on a software rasteriser only (see PERFORMANCE.md)
 - ✅ Unit tests: 7 suites (redactor, normaliser, scanner + resolution, installer, git, session, layouts)
-- ⬜ macOS and Windows builds not yet produced or verified
+- 🟡 Windows: built in CI (`.github/workflows/windows.yml`, Qt 6.8.3, MSVC 2022), all 7 test suites
+  pass, and the packaged app renders the full scene on Direct3D 11 (WARP software adapter on
+  the runner). Not yet run on a Windows machine with a GPU, and hooks / relay / Command Centre
+  have not been exercised against a real Claude Code session on Windows.
+- ⬜ macOS build not yet produced or verified
 
 ## Deliberately deferred (the architecture supports them)
 - tree-sitter / LSP analysers behind `SourceScanner`
