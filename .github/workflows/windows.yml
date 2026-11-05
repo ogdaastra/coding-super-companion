@@ -1,0 +1,90 @@
+name: Windows build
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt 6.8.3 (MSVC 2022, with shader tools)
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.8.3"
+          host: windows
+          target: desktop
+          arch: win64_msvc2022_64
+          modules: qtshadertools
+          cache: true
+
+      - name: Set up the MSVC developer environment
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Configure
+        shell: pwsh
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        shell: pwsh
+        run: cmake --build build
+
+      - name: Unit tests
+        shell: pwsh
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Package a ready-to-run folder
+        shell: pwsh
+        run: |
+          $out = "NEXUS-windows"
+          New-Item -ItemType Directory -Force $out | Out-Null
+          Copy-Item build/src/nexus.exe, build/src/nexus-relay.exe, build/src/nexus_mcp.py $out
+          windeployqt --release --qmldir src/qml --no-translations --compiler-runtime "$out/nexus.exe"
+          windeployqt --release --no-translations "$out/nexus-relay.exe"
+          Copy-Item assets/fonts/*.txt, assets/fonts/LICENSE* $out -ErrorAction SilentlyContinue
+          @"
+          NEXUS for Windows
+          =================
+          1. Double-click nexus.exe.
+          2. If the 3D view looks wrong or blank, run it from a terminal with:
+               nexus.exe --backend=vulkan
+             or
+               nexus.exe --backend=opengl
+          3. To see real activity, install Claude Code, then open Setup (gear icon) in NEXUS.
+          "@ | Set-Content "$out/README.txt"
+
+      - name: Smoke test the relay
+        shell: pwsh
+        run: |
+          & "NEXUS-windows/nexus-relay.exe" --version
+          if ($LASTEXITCODE -ne 0) { throw "nexus-relay exited with $LASTEXITCODE" }
+
+      # The runner has no GPU: Direct3D 11 runs on Microsoft's software rasteriser (WARP).
+      # This proves the packaged app starts, loads QML and renders a frame on Windows.
+      - name: Smoke test the app (screenshot on the default backend)
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $appArgs = @("--simulate", "--quality", "0", "--project", "$PWD", "--screenshot", "$PWD/windows-screenshot.png", "--screenshot-delay", "8000")
+          $p = Start-Process -FilePath "NEXUS-windows/nexus.exe" -ArgumentList $appArgs -PassThru
+          if (-not $p.WaitForExit(90000)) { $p.Kill(); throw "nexus.exe did not exit within 90 s" }
+          Write-Host "nexus exit code: $($p.ExitCode)"
+          if (-not (Test-Path windows-screenshot.png)) { throw "no screenshot was written" }
+          Get-ChildItem "$env:LOCALAPPDATA" -Recurse -Filter nexus.log -ErrorAction SilentlyContinue | ForEach-Object { Get-Content $_.FullName -Tail 40 }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NEXUS-windows
+          path: NEXUS-windows
+          retention-days: 30
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-screenshot
+          path: windows-screenshot.png
+          if-no-files-found: warn
