@@ -22,6 +22,7 @@ import { EditService } from './EditService.ts';
 import { ProjectService } from './ProjectService.ts';
 import { Playback } from './Playback.ts';
 import { ExperimentRunner } from '../experiments/ExperimentRunner.ts';
+import { VisionService } from './VisionService.ts';
 
 export type { AppState };
 
@@ -46,6 +47,7 @@ export class AppController {
   readonly projects: ProjectService;
   readonly playback: Playback;
   readonly experiments: ExperimentRunner;
+  readonly vision: VisionService;
 
   private canvas: HTMLCanvasElement | null = null;
   private labels: HTMLElement | null = null;
@@ -64,6 +66,7 @@ export class AppController {
     this.projects = new ProjectService(this);
     this.playback = new Playback(this);
     this.experiments = new ExperimentRunner(this);
+    this.vision = new VisionService(this);
     this.wireClient();
     this.store.set({ install: platform.installState() });
     platform.onInstallStateChange((install) => {

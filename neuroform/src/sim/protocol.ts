@@ -19,6 +19,7 @@ import type {
   WeightHistogram,
 } from '../engine/types.ts';
 import type { NeuronClassFilter } from '../engine/wasmEngine.ts';
+import type { VisionTrialResult } from '../vision/trainer.ts';
 
 export type SimStatus = 'booting' | 'empty' | 'building' | 'paused' | 'running' | 'error';
 
@@ -220,6 +221,10 @@ export interface Requests {
   recordStart: { req: { maxSpikes: number; channel?: 'user' | 'experiment' }; res: void };
   recordStop: { req: { channel?: 'user' | 'experiment' }; res: { bytes: Uint8Array; spikes: number; durationMs: number } | null };
   benchmark: { req: { sizes: number[]; seconds: number }; res: BenchmarkResult[] };
+  /** Prepares image training on the current (Vision Lab) network; idempotent. */
+  visionSetup: { req: Record<string, never>; res: { classes: string[]; retinaNeurons: number; trained: number; expected: number } };
+  /** One image trial: show it, read the answer, and (with `learn`) reward or punish. */
+  visionTrial: { req: { features: Float32Array; label: number | null; learn: boolean }; res: VisionTrialResult & { trained: number; expected: number } };
 }
 
 export type RequestType = keyof Requests;

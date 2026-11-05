@@ -35,6 +35,7 @@ backend is involved.
 | 4 | 3D rendering engine | `src/render/` | Three.js; receives arrays only |
 | 5 | Telemetry and statistics | `src/telemetry/`, engine `telemetry.rs` | protocol types |
 | 6 | Experiment manager | `src/experiments/` | `ExperimentContext` interface |
+| 6b | Vision Lab (image training) | `src/vision/`, `src/app/VisionService.ts` | `TrialNet` interface (worker or engine) |
 | 7 | Persistence manager | `src/persistence/` | IndexedDB, file formats |
 | 8 | Configuration management | `src/config/` | schema only |
 

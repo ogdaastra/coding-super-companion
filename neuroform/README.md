@@ -137,6 +137,12 @@ differences:
 * **Experiment**: stimulate a neuron, its neighbourhood or a region (`S`); change
   parameters (undo with Ctrl Z); disable regions; cut or scale pathways; enable
   plasticity (`P`) and deliver reward; run experiments A–G in the Laboratory.
+* **Teach it to see**: Laboratory → **Vision**. Name 2–4 kinds of thing, add
+  photos of each, build the vision network and train it. It answers by which
+  group of neurons fires most, gets rewarded when right and punished when wrong,
+  and is tested on photos it never trained on. Very different-looking things
+  (bananas and apples) reached 85–98 % in tests; look-alikes (apples and tomatoes)
+  only 55–65 %. Details: [docs/SIMULATION.md](docs/SIMULATION.md#vision-lab-learning-to-recognise-images).
 * **Keep work**: Ctrl S saves the project (IndexedDB); snapshots restore the exact
   state; recordings capture every spike for playback; everything exports to files.
 * **Everything else**: Ctrl K / ⌘K opens the command palette; `?` lists shortcuts.

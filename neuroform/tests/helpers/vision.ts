@@ -82,3 +82,37 @@ export function fruitPhoto(kind: Fruit, rand: () => number): Uint8ClampedArray {
   }
   return px;
 }
+
+/**
+ * Encodes an RGBA image as a 24-bit BMP file (a format every browser decodes),
+ * scaling it up by `scale` with nearest-neighbour pixels. Used to hand synthetic
+ * photos to the app through its file inputs in end-to-end tests.
+ */
+export function toBmp(rgba: Uint8ClampedArray, size: number, scale = 4): Uint8Array {
+  const w = size * scale;
+  const rowBytes = Math.ceil((w * 3) / 4) * 4;
+  const data = rowBytes * w;
+  const out = new Uint8Array(54 + data);
+  const dv = new DataView(out.buffer);
+  out[0] = 0x42;
+  out[1] = 0x4d;
+  dv.setUint32(2, out.length, true);
+  dv.setUint32(10, 54, true);
+  dv.setUint32(14, 40, true);
+  dv.setInt32(18, w, true);
+  dv.setInt32(22, w, true); // bottom-up rows
+  dv.setUint16(26, 1, true);
+  dv.setUint16(28, 24, true);
+  dv.setUint32(34, data, true);
+  for (let y = 0; y < w; y++) {
+    const src = size - 1 - Math.floor(y / scale);
+    for (let x = 0; x < w; x++) {
+      const p = 4 * (src * size + Math.floor(x / scale));
+      const o = 54 + y * rowBytes + 3 * x;
+      out[o] = rgba[p + 2];
+      out[o + 1] = rgba[p + 1];
+      out[o + 2] = rgba[p];
+    }
+  }
+  return out;
+}

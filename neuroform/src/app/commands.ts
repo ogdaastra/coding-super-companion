@@ -56,6 +56,10 @@ export function buildCommands(app: AppController): Command[] {
   add({ id: 'settings', group: 'Display', label: 'Settings', run: () => app.openDialog('settings') });
   if (s.install === 'available') add({ id: 'install', group: 'App', label: 'Install NEUROFORM as a desktop app', hint: 'own window, works offline', run: () => app.installApp() });
   add({ id: 'benchmark', group: 'Performance', label: 'Run engine benchmark', run: () => app.openDialog('benchmark') });
+  add({ id: 'vision', group: 'Laboratory', label: 'Vision Lab: teach the network to recognise photos', hint: 'reward and punishment', run: () => {
+    app.setMode('laboratory');
+    app.store.set({ labTab: 'vision' });
+  } });
 
   if (info) {
     info.regions.forEach((r, i) => {

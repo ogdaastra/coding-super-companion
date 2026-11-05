@@ -12,6 +12,7 @@ import { XYChart } from '../charts/charts.tsx';
 import { Icon } from '../icons.tsx';
 import { NumberField, Panel, Section, Segmented, Select, Slider, Stat, ToggleRow } from '../primitives.tsx';
 import { LearningControls, StimulusTool } from '../explorer/BrainPanel.tsx';
+import { VisionProgressPanel, VisionSetupPanel } from './VisionLab.tsx';
 
 function ParamInput({ spec, value, onChange }: { spec: ParamSpec; value: ParamValue; onChange: (v: ParamValue) => void }) {
   const info = useAppState((s) => s.info);
@@ -237,14 +238,17 @@ export function GlobalControls() {
 }
 
 export function LaboratoryWorkspace() {
-  const [tab, setTab] = useState<'experiments' | 'stimulus' | 'controls'>('experiments');
+  const app = useApp();
+  const tab = useAppState((s) => s.labTab);
+  const setTab = (labTab: typeof tab) => app.store.set({ labTab });
   return (
     <div className="workspace ws-lab">
       <div className="slot slot-left">
         <div style={{ pointerEvents: 'auto' }}>
-          <Segmented value={tab} onChange={setTab} options={[{ value: 'experiments', label: 'Experiments' }, { value: 'stimulus', label: 'Stimulation' }, { value: 'controls', label: 'Controls & learning' }]} />
+          <Segmented value={tab} onChange={setTab} options={[{ value: 'experiments', label: 'Experiments' }, { value: 'vision', label: 'Vision' }, { value: 'stimulus', label: 'Stimulation' }, { value: 'controls', label: 'Controls & learning' }]} />
         </div>
         {tab === 'experiments' && <ExperimentPanel />}
+        {tab === 'vision' && <VisionSetupPanel />}
         {tab === 'stimulus' && (
           <Panel title="Stimulation designer" meta="patterns, repetitions, targets" className="grow">
             <StimulusTool />
@@ -264,7 +268,7 @@ export function LaboratoryWorkspace() {
       </div>
       <div className="slot-spacer" />
       <div className="slot slot-right">
-        <ResultsPanel />
+        {tab === 'vision' ? <VisionProgressPanel /> : <ResultsPanel />}
       </div>
     </div>
   );

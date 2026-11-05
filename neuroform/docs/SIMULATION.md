@@ -179,6 +179,71 @@ This is a standard computational learning rule. NEUROFORM does not claim it
 models human learning or biological memory; it exposes the actual weights,
 traces and modulator so the rule's effects can be inspected.
 
+Two controls let a task use the rule trial by trial:
+
+* **Clearing eligibility** (`clear_eligibility`) zeroes every eligibility trace
+  and the modulator, without touching weights or spike traces. Clearing at the
+  start of each trial makes a following reward credit only that trial's activity.
+* **Reward gate** (`set_reward_gate`): a factor in [0, 1] per projection on how
+  much of M reaches its synapses (`d|w|/dt = r · η · g_p · M · e`). It is 1
+  everywhere by default. A task can open only the pathway of the action that was
+  taken, so a reward or punishment credits that action alone.
+
+## Vision Lab: learning to recognise images
+
+The Vision Lab preset (Laboratory → Vision) learns to tell classes of photos
+apart from reward and punishment alone. Code: `src/vision/`; calibration and
+learning tests: `tests/unit/vision.test.ts`.
+
+**Network.**
+* **Retina:** three interleaved mosaics of 512 neurons each, red, green and blue
+  "cones". They lie on a flat disc that is mapped onto a 16 × 16 image by quantile
+  binning, so every pixel has exactly two neurons per colour.
+* **Visual cortex:** about 1,200 neurons, receiving topographic projections from
+  each mosaic (8 inputs per cone type, weights with a 70 % relative spread).
+* **Answer populations:** one per class, of 120 neurons each, with
+  cross-inhibition. Cortex → answer synapses use reward-modulated STDP
+  (A₊ = 0.012 > A₋ = 0.006, τ_e = 300 ms, τ_M = 100 ms, r = 4).
+
+**Input.** Each photo is cropped to its centre square and averaged down to
+16 × 16. Each channel is divided by the photo's brightest value. Each cone neuron
+receives Poisson input (rate-coded input, below) at a rate proportional to its
+pixel's channel, scaled so that the retina's mean rate is 60 Hz for every photo
+(at most 240 Hz per neuron). Every event adds 3 to the neuron's synaptic current.
+
+**Trial.**
+1. Clear eligibility, then show the photo for 200 ms.
+2. Count each answer population's spikes from 40 ms to 200 ms.
+3. The answer is the population with the largest count relative to its typical
+   count (a running average over training).
+4. With input off, open the reward gate on the answer's pathway only, deliver
+   the reward or punishment, and rest for 150 ms while it acts.
+
+**Reward.** The modulator delivered is a reward prediction error: +1 or −1 minus
+the running average of recent outcomes. A correct answer stops being rewarded
+once it is expected, while a mistake stands out.
+
+**Measured on synthetic photos** (fruit on random backgrounds, accuracy on
+held-out photos, chance 50 % for two classes):
+
+* Apple vs banana (different colour and shape): 85–98 % across seeds after
+  2,000 trials. The unit test reaches 80 % after 480 trials.
+* Apple vs tomato (red and round vs orange-red with a green top): 55–63 %. An
+  ideal nearest-centroid read-out of the raw pixels reaches only 72 % here.
+* Three fruits: 50–60 % (chance 33 %).
+
+**Rejected designs**, each measured before it was rejected:
+
+* **A single global reward:** the losing population was punished for its own
+  class and learned backwards; training collapsed to one answer.
+* **One mixed retina:** cortex neurons summed all three colours, so colour was
+  lost. Apple vs tomato was separable from cortex activity only 53 % of the time,
+  against 62 % with separate mosaics.
+* **Weight-based and activity-based synaptic scaling:** runaway growth, or an
+  oscillating answer bias.
+* **Raw ±1 rewards:** once accuracy passed 50 %, rewards outnumbered
+  punishments, weights ratcheted up to their limit and accuracy fell back.
+
 ## Stimulation
 
 A stimulus resolves its selection (neurons, regions with a class filter and
@@ -192,6 +257,14 @@ steps: start, duration, repetitions and interval. Patterns:
 
 DC components only touch neurons at on/off transitions (they shift V_∞), so long
 stimuli are free per step.
+
+### Rate-coded input
+
+`set_input(ids, rates, amplitude)` drives a list of neurons with independent
+Poisson events, each neuron at its own rate. Each event adds `amplitude` to the
+neuron's synaptic current, exactly like a synaptic event. This is how an image
+reaches the retina. Neurons with rate 0 cost nothing, and the input stays on
+until it is replaced or cleared. It is not part of snapshots.
 
 ## Telemetry (what the numbers mean)
 

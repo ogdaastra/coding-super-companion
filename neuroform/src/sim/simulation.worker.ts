@@ -18,6 +18,9 @@ import type { TelemetryReport } from '../engine/types.ts';
 import { observatory } from '../config/presets.ts';
 import { StepScheduler } from './scheduler.ts';
 import { RecordingWriter } from './recording.ts';
+import { visionRegion } from '../config/presets.ts';
+import { retinaLayout } from '../vision/retina.ts';
+import { VisionTrainer, type VisionNet } from '../vision/trainer.ts';
 import type {
   BenchmarkResult,
   BuiltNetwork,
@@ -77,6 +80,50 @@ function setStatus(s: SimStatus, detail?: string): void {
 function requireNet(): EngineNetwork {
   if (!net || !net.alive) throw new EngineError('no network has been built');
   return net;
+}
+
+// ------------------------------------------------------------------ vision
+
+/** Image training on a Vision Lab network; discarded when the network changes. */
+let vision: { net: EngineNetwork; trainer: VisionTrainer; classes: string[] } | null = null;
+
+function visionTrainer(): NonNullable<typeof vision> {
+  const n = requireNet();
+  if (vision && vision.net === n) return vision;
+  const info = n.info;
+  const idx = (id: string) => info.regions.findIndex((r) => r.id === id);
+  const cones = visionRegion.cones.map(idx);
+  const cortex = idx(visionRegion.cortex);
+  const outputs: number[] = [];
+  for (let k = 0; idx(visionRegion.output(k)) >= 0; k++) outputs.push(idx(visionRegion.output(k)));
+  if (cones.some((c) => c < 0) || cortex < 0 || outputs.length < 2) {
+    throw new EngineError('the current network is not a Vision Lab network (build one from the Vision tab)');
+  }
+  const adapter: VisionNet = {
+    dt: info.dt,
+    setInput: (ids, rates, a) => n.setInput(ids, rates, a),
+    clearInput: () => n.clearInput(),
+    clearEligibility: () => n.clearEligibility(),
+    run: (steps) => {
+      if (steps <= 0) return;
+      const t0 = performance.now();
+      n.run(steps);
+      windowBusy += performance.now() - t0;
+      windowSteps += steps;
+      drainSpikes(n);
+    },
+    injectReward: (a) => n.injectReward(a),
+    setRewardGate: (g) => n.setRewardGate(g),
+    regionSpikes: () => maybeTelemetry(performance.now(), true)!.regions.map((r) => r.spikesExc),
+  };
+  const setup = {
+    layout: retinaLayout(n.copy('positions'), cones.map((c) => info.regions[c])),
+    outputs,
+    readProjections: outputs.map((o) => info.projections.flatMap((p, i) => (p.from === cortex && p.to === o ? [i] : []))),
+    projectionCount: info.projections.length,
+  };
+  vision = { net: n, trainer: new VisionTrainer(adapter, setup), classes: outputs.map((o) => info.regions[o].name) };
+  return vision;
 }
 
 // ------------------------------------------------------------------ run loop
@@ -832,7 +879,17 @@ const handlers: Handlers = {
     const bytes = r.finish(net.timeMs, net.step);
     return { bytes, spikes: r.spikeCount, durationMs: net.timeMs - r.startMs };
   },
-  benchmark({ sizes, seconds }) {
+  visionSetup() {
+    const v = visionTrainer();
+    return { classes: v.classes, retinaNeurons: v.trainer.setup.layout.ids.length, trained: v.trainer.trainedTrials, expected: v.trainer.expected };
+  },
+  visionTrial({ features, label, learn }) {
+    if (running) throw new EngineError('pause the simulation before running vision trials');
+    const v = visionTrainer();
+    const r = v.trainer.trial(features, label, learn);
+    return { ...r, trained: v.trainer.trainedTrials, expected: v.trainer.expected };
+  },
+    benchmark({ sizes, seconds }) {
     return benchmark(sizes, seconds);
   },
 };

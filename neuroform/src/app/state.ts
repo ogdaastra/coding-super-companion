@@ -19,6 +19,9 @@ export const APP_MODES: { id: AppMode; label: string; key: string; describe: str
   { id: 'performance', label: 'Performance', key: '6', describe: 'Engine, worker and renderer instrumentation' },
 ];
 
+/** Tabs of the Laboratory's left column. */
+export type LabTab = 'experiments' | 'stimulus' | 'controls' | 'vision';
+
 export type DialogName = 'designer' | 'projects' | 'settings' | 'help' | 'export' | 'benchmark' | 'about';
 
 export interface Toast {
@@ -94,6 +97,7 @@ export interface AppState {
   fullscreen: boolean;
   /** Whether NEUROFORM can be installed as a desktop app (see `Platform.installState`). */
   install: InstallState;
+  labTab: LabTab;
   librarySeq: number;
   /** Synapses whose weight is sampled every telemetry window. */
   tracked: number[];
@@ -161,6 +165,7 @@ export function initialState(): AppState {
     stimulus: { amplitude: 2.5, durationMs: 40, pattern: 'constant', frequencyHz: 40, rateHz: 200, repetitions: 1, intervalMs: 500, fraction: 0.3, radius: 18 },
     fullscreen: false,
     install: 'unavailable',
+    labTab: 'experiments',
     librarySeq: 0,
     tracked: [],
     gains: [],
