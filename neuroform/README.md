@@ -88,6 +88,24 @@ Cloudflare Pages, GitHub Pages, S3, nginx). No backend, no environment variables
 no special headers are required. Details and host configurations:
 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
+## Install as a desktop app
+
+NEUROFORM can be installed from the website as an app. It then opens in its own
+window from your desktop, Start menu, Dock or Applications folder, and works
+**fully offline**: the simulation runs on your machine, and nothing needs a
+server.
+
+* **Chrome or Edge** (Windows, macOS, Linux, ChromeOS): click **Install app** in
+  NEUROFORM's top bar, or use the install icon at the right of the address bar.
+* **Safari** (macOS Sonoma or later): File → **Add to Dock**.
+* **Firefox**: does not install web apps on most platforms. Use Chrome, Edge or
+  Safari, or keep using it in a tab (it still works offline after the first
+  visit).
+
+When the installed app is online it picks up new versions automatically. Projects,
+snapshots and recordings are stored on your machine, in the profile of the
+browser you installed the app from.
+
 ## Using NEUROFORM
 
 * **Navigate**: drag to orbit, right-drag (or Shift-drag) to pan, scroll or pinch to

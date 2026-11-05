@@ -152,6 +152,7 @@ function SettingsDialog() {
       <Section label="Telemetry" hint="How often the worker sends measurements to the interface. Lower values reduce main-thread work on slow devices; values are always exact for each window.">
         <Select value={hz} onChange={(v) => void app.setTelemetryHz(v)} options={[2, 5, 10, 15, 20, 30].map((v) => ({ value: v, label: `${v} Hz` }))} />
       </Section>
+      <DesktopAppSection />
       <Section label="This browser">
         <dl className="kv">
           <dt>WebGPU API</dt><dd>{caps.webgpu ? 'available' : 'not available'}</dd>
@@ -162,6 +163,26 @@ function SettingsDialog() {
         </dl>
       </Section>
     </Dialog>
+  );
+}
+
+function DesktopAppSection() {
+  const app = useApp();
+  const install = useAppState((s) => s.install);
+  const text: Record<typeof install, string> = {
+    app: 'Running as an installed app in its own window. Everything works offline; when you are online, updates are picked up automatically.',
+    installed: 'Installed. Open NEUROFORM from your desktop, Start menu, Dock or Applications folder. It works offline.',
+    available: 'Install NEUROFORM as an app: it gets its own window and a desktop or Start-menu icon, and works offline. Your projects stay in this browser profile.',
+    unavailable: 'Your browser is not offering installation right now. If NEUROFORM is already installed, open it from your desktop or Start menu. Otherwise: in Chrome or Edge, use the install icon at the right of the address bar or the browser menu; in Safari on macOS, choose File → Add to Dock. Firefox does not install web apps on most platforms.',
+  };
+  return (
+    <Section label="Desktop app" hint={text[install]}>
+      {install === 'available' && (
+        <button type="button" className="btn btn--primary" onClick={() => void app.installApp()}>
+          {Icon.install({ width: 15, height: 15 })} Install app
+        </button>
+      )}
+    </Section>
   );
 }
 

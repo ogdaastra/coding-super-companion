@@ -6,6 +6,7 @@ import type { SimStatus } from '../sim/protocol.ts';
 import type { BackendPreference, RenderStats } from '../render/BrainView.ts';
 import type { QualityName } from '../render/quality.ts';
 import type { VizMode } from '../render/vizModes.ts';
+import type { InstallState } from '../platform/platform.ts';
 
 export type AppMode = 'explorer' | 'observatory' | 'connectome' | 'laboratory' | 'study' | 'performance';
 
@@ -91,6 +92,8 @@ export interface AppState {
   workerCrashed: boolean;
   stimulus: StimulusDefaults;
   fullscreen: boolean;
+  /** Whether NEUROFORM can be installed as a desktop app (see `Platform.installState`). */
+  install: InstallState;
   librarySeq: number;
   /** Synapses whose weight is sampled every telemetry window. */
   tracked: number[];
@@ -157,6 +160,7 @@ export function initialState(): AppState {
     workerCrashed: false,
     stimulus: { amplitude: 2.5, durationMs: 40, pattern: 'constant', frequencyHz: 40, rateHz: 200, repetitions: 1, intervalMs: 500, fraction: 0.3, radius: 18 },
     fullscreen: false,
+    install: 'unavailable',
     librarySeq: 0,
     tracked: [],
     gains: [],

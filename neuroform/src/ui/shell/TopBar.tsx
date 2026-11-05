@@ -34,6 +34,7 @@ export function TopBar() {
   const mode = useAppState((s) => s.mode);
   const project = useAppState((s) => s.project);
   const fullscreen = useAppState((s) => s.fullscreen);
+  const install = useAppState((s) => s.install);
   const draft = useAppState((s) => s.draft);
   const modesRef = useRef<HTMLDivElement>(null);
   const [indicator, setIndicator] = useState({ left: 0, width: 0 });
@@ -75,6 +76,12 @@ export function TopBar() {
           <span>Commands</span>
           <Kbd>⌘K</Kbd>
         </button>
+        {install === 'available' && (
+          <button type="button" className="btn btn--primary install-btn" onClick={() => void app.installApp()} aria-label="Install app" title="Install NEUROFORM as a desktop app that works offline">
+            {Icon.install({ width: 15, height: 15 })}
+            <span className="install-btn__label">Install app</span>
+          </button>
+        )}
         <IconButton icon={Icon.brain()} label="Brain designer" onClick={() => app.openDialog('designer')} kbd="N" />
         <span className="hide-sm"><IconButton icon={Icon.save()} label="Save project" onClick={() => void app.projects.saveProject()} kbd="Ctrl S" /></span>
         <span className="hide-sm"><IconButton icon={Icon.download()} label="Import & export" onClick={() => app.openDialog('export')} /></span>

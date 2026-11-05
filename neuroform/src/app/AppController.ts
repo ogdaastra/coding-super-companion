@@ -69,6 +69,14 @@ export class AppController {
     this.playback = new Playback(this);
     this.experiments = new ExperimentRunner(this);
     this.wireClient();
+    this.store.set({ install: platform.installState() });
+    platform.onInstallStateChange((install) => {
+      const was = this.state.install;
+      this.store.set({ install });
+      if (install === 'installed' && was !== 'installed') {
+        this.toast('success', 'NEUROFORM is installed', 'Open it from your desktop, Start menu, Dock or Applications folder. It works offline.');
+      }
+    });
   }
 
   get state(): AppState {
@@ -441,6 +449,13 @@ export class AppController {
 
   setPalette(open: boolean): void {
     this.store.set({ palette: open, context: null });
+  }
+
+  /** Shows the browser's install prompt (only offered when `state.install` is 'available'). */
+  async installApp(): Promise<void> {
+    if (this.state.install !== 'available') return;
+    const accepted = await platform.install();
+    if (!accepted && platform.installState() !== 'installed') this.toast('info', 'Installation cancelled', 'You can install NEUROFORM later from Settings or the command palette.');
   }
 
   async toggleFullscreen(): Promise<void> {

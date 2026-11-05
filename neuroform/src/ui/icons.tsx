@@ -26,6 +26,7 @@ export const Icon = {
   save: (p: P = {}) => base(<><path d="M5 4h11l3 3v12a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1z" /><path d="M8 4v5h7V4M8 20v-6h8v6" /></>, p),
   camera: (p: P = {}) => base(<><path d="M4 8h3l2-2.5h6L17 8h3v11H4z" /><circle cx="12" cy="13" r="3.5" /></>, p),
   download: (p: P = {}) => base(<path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14" />, p),
+  install: (p: P = {}) => base(<><rect x="3" y="4" width="18" height="12.5" rx="2" /><path d="M9 20.5h6M12 16.5v4M12 7v6m0 0-2.5-2.5M12 13l2.5-2.5" /></>, p),
   upload: (p: P = {}) => base(<path d="M12 20V9m0 0-4 4m4-4 4 4M5 4h14" />, p),
   target: (p: P = {}) => base(<><circle cx="12" cy="12" r="7.5" /><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" /></>, p),
   focus: (p: P = {}) => base(<><path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4" /><circle cx="12" cy="12" r="2.5" /></>, p),

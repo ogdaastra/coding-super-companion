@@ -299,6 +299,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .topbar__right { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
 .palette-trigger { display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 8px 0 11px; border-radius: 9px; border: 1px solid var(--hairline); background: rgba(3, 7, 16, 0.45); color: var(--text-3); cursor: pointer; font-size: var(--fs-small); }
 .palette-trigger:hover { color: var(--text); border-color: var(--hairline-strong); }
+.install-btn { height: 32px; padding: 0 11px; }
 
 /* ------------------------------------------------------------------ dock */
 
@@ -468,6 +469,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
   .sheet-toggle { display: inline-flex; position: absolute; left: var(--gutter); bottom: calc(var(--dock-h) + var(--gutter) + 12px); z-index: 31; }
   .workspace.has-sheet > .slot-right { display: none; }
   .palette-trigger span { display: none; }
+  .install-btn { padding: 0 9px; }
+  .install-btn__label { display: none; }
   .hud { max-width: 90vw; }
   .speed .range { width: 70px; }
 }

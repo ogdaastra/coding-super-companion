@@ -159,9 +159,29 @@ data. See `FORMATS.md` for the file formats.
 
 ## Offline
 
-The build emits `sw.js` listing every built file. It precaches them on first load,
-serves hashed assets cache-first and the page network-first, so the application
-(including the engine) starts without a network after the first visit.
+The build emits `sw.js` listing every built file, plus the files copied from
+`public/` (web app manifest, icons). It precaches them on first load, serves
+hashed assets cache-first and the page network-first, so the application
+(including the engine) starts without a network after the first visit. The cache
+name is derived from the bundle's hashed file names and the contents of the
+public files, so any change produces a new service worker that replaces the old
+cache.
+
+## Installable app
+
+`public/manifest.webmanifest` (standalone display, `start_url` and `scope` of
+`./`, icons in `public/icons/` rendered by `scripts/make-icons.ts`) and the service
+worker make NEUROFORM installable as a desktop app in Chromium browsers and
+Safari. The installed app is the same build in its own window, and it starts
+offline from the precache.
+
+The browser's install offer (`beforeinstallprompt`) is captured by the `Platform`
+layer at module load. It is exposed as `state.install`
+(`app` / `available` / `installed` / `unavailable`). The interface shows **Install
+app** (top bar, command palette, Settings → Desktop app) only while the state is
+`available`. Browsers without that event (Safari, Firefox) get written
+instructions instead of a button. An end-to-end test asks Chromium for
+installability errors through the DevTools protocol (`Page.getInstallabilityErrors`).
 
 ## Desktop packaging (future)
 

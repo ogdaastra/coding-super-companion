@@ -54,6 +54,7 @@ export function buildCommands(app: AppController): Command[] {
   for (const q of QUALITY_ORDER) add({ id: `quality-${q}`, group: 'Display', label: `Quality: ${q}`, run: () => app.setQuality(q) });
   add({ id: 'adaptive', group: 'Display', label: s.render.adaptive ? 'Disable adaptive quality' : 'Enable adaptive quality', run: () => app.setAdaptive(!s.render.adaptive) });
   add({ id: 'settings', group: 'Display', label: 'Settings', run: () => app.openDialog('settings') });
+  if (s.install === 'available') add({ id: 'install', group: 'App', label: 'Install NEUROFORM as a desktop app', hint: 'own window, works offline', run: () => app.installApp() });
   add({ id: 'benchmark', group: 'Performance', label: 'Run engine benchmark', run: () => app.openDialog('benchmark') });
 
   if (info) {
