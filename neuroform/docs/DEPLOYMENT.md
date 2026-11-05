@@ -10,17 +10,18 @@ wrong) and serve `sw.js` from the same directory as `index.html`.
 
 ## Vercel
 
-Framework preset *Other*, root directory `neuroform`, build command
-`npm run build`, output directory `dist`. Rust must be available in the build
-image; the simplest route is to build in CI and deploy `dist/` (`vercel deploy
-dist --prebuilt` or the Vercel GitHub integration with a build step).
-`vercel.json` sets cache headers.
+Import the repository with root directory `neuroform`. `vercel.json` sets
+everything else: the build command, output directory `dist`, and cache headers.
+Vercel's build image has no Rust, so the build command first runs
+`scripts/ensure-rust.sh`, which installs a minimal stable toolchain with the
+`wasm32-unknown-unknown` target (it does nothing if Rust is already present). A
+prebuilt `dist/` can also be deployed directly with `vercel deploy dist`.
 
 ## Netlify
 
-`netlify.toml` is included (`base = "neuroform"`, `publish = "dist"`). Netlify's
-build image does not include Rust: either add a Rust install step to the build
-command or deploy a prebuilt `dist/` with `netlify deploy --dir dist --prod`.
+`netlify.toml` is included (`base = "neuroform"`, `publish = "dist"`). Its build
+command runs `scripts/ensure-rust.sh` first, as on Vercel. A prebuilt `dist/` can
+also be deployed with `netlify deploy --dir dist --prod`.
 
 ## Cloudflare Pages
 
