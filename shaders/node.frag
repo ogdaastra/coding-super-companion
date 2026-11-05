@@ -29,8 +29,8 @@ layout(std140, binding = 0) uniform Frame {
     vec4 mode;
 } fr;
 
-layout(std140, binding = 1) uniform Pass {
-    vec4 pass;
+layout(std140, binding = 1) uniform NodePass {
+    vec4 passMode;
 } ps;
 
 const vec3 CYAN = vec3(0.247, 0.831, 1.000);
@@ -86,7 +86,7 @@ void main()
     float git = v_misc.w;
     float aRead = v_act.x, aWrite = v_act.y, aError = v_act.z, aPulse = v_act.w;
 
-    if (ps.pass.x < 0.5) {
+    if (ps.passMode.x < 0.5) {
         // ---------------------------------------------------------------- core
         vec3 rd = normalize(v_viewPos);
         vec3 c = v_centerView;

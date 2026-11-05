@@ -86,10 +86,14 @@ qt_add_resources(nexus "nexus_fonts"
     BASE ${CMAKE_SOURCE_DIR}/assets/fonts
     FILES ${NEXUS_FONTS})
 
+# Keep nexus, nexus-relay and nexus_mcp.py in one build directory on every platform
+# (qt_standard_project_setup moves executables to <build>/bin on Windows otherwise).
+# NEXUS looks for the relay next to its own executable.
 set_target_properties(nexus PROPERTIES
     WIN32_EXECUTABLE ON
     MACOSX_BUNDLE ON
-    OUTPUT_NAME nexus)
+    OUTPUT_NAME nexus
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 install(TARGETS nexus BUNDLE DESTINATION . RUNTIME DESTINATION bin)
 

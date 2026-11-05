@@ -24,8 +24,8 @@ layout(std140, binding = 0) uniform Frame {
     vec4 mode;
 } fr;
 
-layout(std140, binding = 1) uniform Pass {
-    vec4 pass;  // x: 0 core, 1 halo
+layout(std140, binding = 1) uniform NodePass {
+    vec4 passMode;  // x: 0 core, 1 halo
 } ps;
 
 layout(location = 0) out vec2 v_corner;
@@ -88,7 +88,7 @@ void main()
     float energy = aRead * 0.8 + aWrite * 1.6 + aError * 1.2 + aPulse * 0.9 + misc.z * 0.35;
     float haloScale = 1.0;
     vec3 viewPos;
-    if (ps.pass.x < 0.5) {
+    if (ps.passMode.x < 0.5) {
         // Core: quad pushed toward the camera by one radius, slightly oversized so the
         // perspective silhouette of the sphere is always covered.
         viewPos = viewCenter + vec3(corner * radius * 1.32, radius);
