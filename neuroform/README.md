@@ -29,6 +29,8 @@ animated independently of the model.
   simulation in a Web Worker, projects and snapshots in IndexedDB, offline after
   the first visit, deployable to any static host.
 
+**Live:** https://neuroform-ogdaastra.vercel.app (runs entirely in your browser).
+
 ## Quick start
 
 Requirements: Node.js ≥ 22.18, Rust (stable) with the `wasm32-unknown-unknown`

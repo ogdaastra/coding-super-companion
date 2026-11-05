@@ -12,15 +12,24 @@ wrong) and serve `sw.js` from the same directory as `index.html`.
 
 Import the repository with root directory `neuroform`. `vercel.json` sets
 everything else: the build command, output directory `dist`, and cache headers.
-Vercel's build image has no Rust, so the build command first runs
-`scripts/ensure-rust.sh`, which installs a minimal stable toolchain with the
-`wasm32-unknown-unknown` target (it does nothing if Rust is already present). A
-prebuilt `dist/` can also be deployed directly with `vercel deploy dist`.
+The build command first runs `scripts/ensure-rust.sh`, which adds the
+`wasm32-unknown-unknown` target to an existing Rust toolchain, or installs a
+minimal stable toolchain if `cargo` is missing. Vercel's build image currently
+includes Rust (cargo 1.92 in November 2026), so only the target is added there,
+and a full build takes about 35 seconds. A prebuilt `dist/` can also be deployed
+directly with `vercel deploy dist`.
+
+New Vercel projects protect every generated `*.vercel.app` address with Vercel
+Authentication by default. To make the production site public while keeping
+preview deployments protected, add a project domain (Settings → Domains), for
+example `<project>-<account>.vercel.app`: project domains are exempt from the
+default protection.
 
 ## Netlify
 
 `netlify.toml` is included (`base = "neuroform"`, `publish = "dist"`). Its build
-command runs `scripts/ensure-rust.sh` first, as on Vercel. A prebuilt `dist/` can
+command runs `scripts/ensure-rust.sh` first, as on Vercel (not yet tried on
+Netlify). A prebuilt `dist/` can
 also be deployed with `netlify deploy --dir dist --prod`.
 
 ## Cloudflare Pages
