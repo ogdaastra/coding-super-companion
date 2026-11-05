@@ -1,6 +1,7 @@
 /** HUD chips, banners, build overlay, toasts, fatal error and intro. */
 
 import { useEffect, useRef, useState } from 'react';
+import { useStore } from '../../app/store.ts';
 import { useApp, useAppState } from '../../app/context.tsx';
 import { Icon } from '../icons.tsx';
 import { fmt } from '../primitives.tsx';
@@ -87,7 +88,6 @@ export function Banners() {
   return null;
 }
 
-import { useStore } from '../../app/store.ts';
 export function useLab() {
   const app = useApp();
   return useStore(app.experiments.store, (s) => s);

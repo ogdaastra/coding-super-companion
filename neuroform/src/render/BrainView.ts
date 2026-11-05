@@ -931,6 +931,9 @@ export class BrainView {
     const vp = cam.projectionMatrix.clone().multiply(cam.matrixWorldInverse).elements;
     const w = this.canvas.clientWidth;
     const h = this.canvas.clientHeight;
+    // Project every label, then resolve overlaps front to back: a label that
+    // would cover a nearer one moves down below it.
+    const placed: { i: number; x: number; y: number; d: number; wPx: number }[] = [];
     this.info.regions.forEach((r, i) => {
       const l = this.labels[i];
       const top: [number, number, number] = [r.center[0], r.center[1] + r.radius[1] * 1.08, r.center[2]];
@@ -939,12 +942,27 @@ export class BrainView {
         l.el.style.opacity = '0';
         return;
       }
-      const dist = p[2];
-      const op = Math.max(0, Math.min(1, (this.bounds.radius * 5 - dist) / (this.bounds.radius * 2))) * (this.isolate >= 0 && this.isolate !== i ? 0.35 : 1);
-      l.el.style.opacity = String(op);
-      l.el.style.transform = `translate(${p[0].toFixed(1)}px, ${p[1].toFixed(1)}px) translate(-50%, -100%)`;
-      l.el.classList.toggle('is-selected', this.selection.region === i);
+      placed.push({ i, x: p[0], y: p[1], d: p[2], wPx: l.el.offsetWidth || 160 });
     });
+    placed.sort((a, b) => a.d - b.d);
+    const boxes: { x0: number; x1: number; y0: number; y1: number }[] = [];
+    const lh = 20;
+    for (const pl of placed) {
+      let y = pl.y;
+      for (let guard = 0; guard < 8; guard++) {
+        const x0 = pl.x - pl.wPx / 2;
+        const x1 = pl.x + pl.wPx / 2;
+        const hit = boxes.find((b) => x0 < b.x1 && x1 > b.x0 && y - lh < b.y1 && y > b.y0);
+        if (!hit) break;
+        y = hit.y1 + lh + 2;
+      }
+      boxes.push({ x0: pl.x - pl.wPx / 2, x1: pl.x + pl.wPx / 2, y0: y - lh, y1: y });
+      const l = this.labels[pl.i];
+      const op = Math.max(0, Math.min(1, (this.bounds.radius * 5 - pl.d) / (this.bounds.radius * 2))) * (this.isolate >= 0 && this.isolate !== pl.i ? 0.35 : 1);
+      l.el.style.opacity = String(op);
+      l.el.style.transform = `translate(${pl.x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -100%)`;
+      l.el.classList.toggle('is-selected', this.selection.region === pl.i);
+    }
   }
 
   stats(): RenderStats {

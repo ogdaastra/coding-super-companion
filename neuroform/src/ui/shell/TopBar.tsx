@@ -65,7 +65,7 @@ export function TopBar() {
         {APP_MODES.map((m) => (
           <button key={m.id} type="button" aria-current={m.id === mode} onClick={() => app.setMode(m.id)} title={`${m.describe} (${m.key})`}>
             <span className="long">{m.label}</span>
-            <span className="short" style={{ display: 'none' }}>{m.label.split(' ').pop()}</span>
+            <span className="short">{m.label.split(' ').pop()}</span>
           </button>
         ))}
       </nav>
@@ -76,10 +76,10 @@ export function TopBar() {
           <Kbd>⌘K</Kbd>
         </button>
         <IconButton icon={Icon.brain()} label="Brain designer" onClick={() => app.openDialog('designer')} kbd="N" />
-        <IconButton icon={Icon.save()} label="Save project" onClick={() => void app.projects.saveProject()} kbd="Ctrl S" />
-        <IconButton icon={Icon.download()} label="Import & export" onClick={() => app.openDialog('export')} />
+        <span className="hide-sm"><IconButton icon={Icon.save()} label="Save project" onClick={() => void app.projects.saveProject()} kbd="Ctrl S" /></span>
+        <span className="hide-sm"><IconButton icon={Icon.download()} label="Import & export" onClick={() => app.openDialog('export')} /></span>
         <IconButton icon={Icon.settings()} label="Settings" onClick={() => app.openDialog('settings')} />
-        <IconButton icon={Icon.help()} label="Help & shortcuts" onClick={() => app.openDialog('help')} kbd="?" />
+        <span className="hide-sm"><IconButton icon={Icon.help()} label="Help & shortcuts" onClick={() => app.openDialog('help')} kbd="?" /></span>
         <IconButton icon={fullscreen ? Icon.collapse() : Icon.expand()} label={fullscreen ? 'Exit full screen' : 'Full screen'} onClick={() => void app.toggleFullscreen()} kbd="F" />
       </div>
     </header>

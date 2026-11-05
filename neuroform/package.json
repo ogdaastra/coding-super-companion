@@ -2,7 +2,7 @@
   "name": "neuroform",
   "private": true,
   "version": "0.1.0",
-  "description": "NEUROFORM — a browser-native artificial brain observatory with a Rust/WebAssembly spiking-network engine.",
+  "description": "NEUROFORM \u2014 a browser-native artificial brain observatory with a Rust/WebAssembly spiking-network engine.",
   "type": "module",
   "engines": {
     "node": ">=22.18"
@@ -17,8 +17,9 @@
     "test:engine": "cargo test --manifest-path engine/Cargo.toml",
     "test:e2e": "playwright test",
     "bench:engine": "node scripts/build-wasm.mjs && node scripts/bench-engine.ts",
-    "bench:native": "cargo run --release --manifest-path engine/Cargo.toml -p neuroform-core --example bench",
-    "bench:browser": "node scripts/bench-browser.ts"
+    "bench:native": "node scripts/bench-native.ts",
+    "bench:browser": "node scripts/bench-browser.ts",
+    "probe": "node scripts/probe-dynamics.ts"
   },
   "dependencies": {
     "react": "^19.3.1",

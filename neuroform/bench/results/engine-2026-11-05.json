@@ -1,0 +1,38 @@
+{
+  "meta": {
+    "date": "2026-11-05T07:25:45.742Z",
+    "node": "v22.23.4",
+    "cpu": "Intel(R) Xeon(R) Processor @ 2.80GHz",
+    "cores": 4,
+    "platform": "linux x64",
+    "secondsPerSize": 3,
+    "preset": "observatory",
+    "timestepMs": 0.5
+  },
+  "rows": [
+    {
+      "neurons": 10000,
+      "synapses": 622299,
+      "buildMs": 604,
+      "msPerSimSecond": 397,
+      "realtimeFactor": 2.518,
+      "spikesPerSimSecond": 70493,
+      "eventsPerWallSecond": 11397726,
+      "meanRateHz": 7.05,
+      "engineMiB": 18.4,
+      "wasmHeapMiB": 20.6
+    },
+    {
+      "neurons": 25000,
+      "synapses": 1557423,
+      "buildMs": 736,
+      "msPerSimSecond": 1538,
+      "realtimeFactor": 0.65,
+      "spikesPerSimSecond": 222865,
+      "eventsPerWallSecond": 9339940,
+      "meanRateHz": 8.91,
+      "engineMiB": 46.1,
+      "wasmHeapMiB": 49.4
+    }
+  ]
+}

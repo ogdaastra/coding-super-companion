@@ -105,7 +105,9 @@ export class NeuronLayer {
     const u = this.uniforms;
 
     const isInh = baseNode.w;
-    const spikeColor = mix(vec3(...hexToRgb(PALETTE.cyan)), vec3(...hexToRgb(PALETTE.magenta)), isInh);
+    // Inhibitory spikes are tinted magenta but kept below excitatory brightness:
+    // inhibitory cells fire faster, and cyan is the colour of ordinary activity.
+    const spikeColor = mix(vec3(...hexToRgb(PALETTE.cyan)), vec3(...hexToRgb('#c25fe0')).mul(0.7), isInh);
     const classColor = mix(vec3(...hexToRgb('#2f9fd0')), vec3(...hexToRgb('#c0459f')), isInh);
     const aux = st.x;
     const hl = st.y;

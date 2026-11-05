@@ -160,7 +160,7 @@ export class AppController {
     view.onCameraSettled = (target, distance) => void this.updateDetail(target, distance);
     view.onTour = (w) => this.store.set((st) => ({ render: { ...st.render, touring: w ? (w.label ?? 'Tour') : null } }));
     view.onLost = (reason) => void this.handleRendererLost(reason);
-    this.store.set((s) => ({ render: { ...s.render, backend: view.backend, error: null } }));
+    this.store.set((s) => ({ render: { ...s.render, backend: view.backend, error: null, history: [...s.render.history, view.backend] } }));
     if (view.softwareRenderer && !this.softwareNoticeShown) {
       this.softwareNoticeShown = true;
       view.setQuality('performance');
@@ -172,6 +172,7 @@ export class AppController {
   private softwareNoticeShown = false;
 
   private async handleRendererLost(reason: string): Promise<void> {
+    this.store.set((s) => ({ render: { ...s.render, history: [...s.render.history, `lost: ${reason}`] } }));
     this.toast('warning', 'Graphics device lost', `${reason} Restarting the renderer…`);
     const pref: BackendPreference = this.view?.backend === 'WebGPU' ? 'webgl2' : this.state.render.preference;
     await this.restartRenderer(pref);
@@ -430,7 +431,7 @@ export class AppController {
     }
   }
 
-  togglePanel(panel: 'left' | 'right' | 'minimap'): void {
+  togglePanel(panel: 'left' | 'right' | 'minimap' | 'sheet'): void {
     this.store.set((s) => ({ panels: { ...s.panels, [panel]: !s.panels[panel] } }));
   }
 

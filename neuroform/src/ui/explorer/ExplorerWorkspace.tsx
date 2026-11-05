@@ -73,9 +73,13 @@ export function Inspector() {
 }
 
 export function ExplorerWorkspace() {
+  const app = useApp();
   const panels = useAppState((s) => s.panels);
   return (
-    <div className="workspace ws-explorer">
+    <div className={`workspace ws-explorer ${panels.sheet ? 'has-sheet' : ''}`}>
+      <button type="button" className="btn btn--sm sheet-toggle glass" onClick={() => app.togglePanel('sheet')} aria-pressed={panels.sheet}>
+        {panels.sheet ? 'Inspector' : 'Brain & tools'}
+      </button>
       <div className="slot slot-left">{panels.left && <BrainPanel />}</div>
       <div className="slot-spacer" />
       <div className="slot slot-right">{panels.right && <Inspector />}</div>

@@ -410,23 +410,46 @@ impl NetworkBuilder {
                         let anchor = anchor_point(&self.positions, &self.regions, j, r, p);
                         let grid = &self.grids[p.grid.unwrap()];
                         let tr = &self.regions[p.to];
-                        let sigma = [
+                        let mut sigma = [
                             p.spread * tr.radius[0],
                             p.spread * tr.radius[1],
                             p.spread * tr.radius[2],
                         ];
                         let nt = &self.normal;
                         let shift = 32 - crate::rng::NORMAL_TABLE_BITS;
-                        for _ in 0..k {
-                            let q = [
-                                anchor[0] + sigma[0] * nt[(self.rng.next_u32() >> shift) as usize],
-                                anchor[1] + sigma[1] * nt[(self.rng.next_u32() >> shift) as usize],
-                                anchor[2] + sigma[2] * nt[(self.rng.next_u32() >> shift) as usize],
-                            ];
-                            let exclude = if p.allow_autapses { u32::MAX } else { j };
-                            if let Some(t) = grid.nearest(&self.positions, q, exclude) {
-                                self.scratch.push((t, 0.0, 0, pi as u8));
+                        let exclude = if p.allow_autapses { u32::MAX } else { j };
+                        // Nearby points often resolve to the same nearest neuron;
+                        // keep drawing until k distinct targets are found (bounded
+                        // retries, so a tiny target population cannot loop).
+                        let available = (p.t1 - p.t0) as usize - usize::from(exclude != u32::MAX && (p.t0..p.t1).contains(&j));
+                        let want = (k as usize).min(available);
+                        let mut have = 0usize;
+                        let mut rounds = 0;
+                        while have < want && rounds < 6 {
+                            rounds += 1;
+                            for _ in 0..(want - have) {
+                                let q = [
+                                    anchor[0] + sigma[0] * nt[(self.rng.next_u32() >> shift) as usize],
+                                    anchor[1] + sigma[1] * nt[(self.rng.next_u32() >> shift) as usize],
+                                    anchor[2] + sigma[2] * nt[(self.rng.next_u32() >> shift) as usize],
+                                ];
+                                if let Some(t) = grid.nearest(&self.positions, q, exclude) {
+                                    self.scratch.push((t, 0.0, 0, pi as u8));
+                                }
                             }
+                            let block = &mut self.scratch[before..];
+                            block.sort_unstable_by_key(|s| s.0);
+                            let mut w = before;
+                            for x in before..self.scratch.len() {
+                                if x == before || self.scratch[x].0 != self.scratch[w - 1].0 {
+                                    self.scratch[w] = self.scratch[x];
+                                    w += 1;
+                                }
+                            }
+                            self.scratch.truncate(w);
+                            have = w - before;
+                            // Later rounds widen the search so dense neighbourhoods saturate less.
+                            sigma = [sigma[0] * 1.25, sigma[1] * 1.25, sigma[2] * 1.25];
                         }
                     }
                 }

@@ -329,7 +329,7 @@ export function highlyConnected(neurons: number, seed = 1): BrainConfig {
       id: 'core', name: 'Dense Core', color: '#8f7dff', share: 3,
       role: 'Random, high in-degree recurrent network.',
       shape: { center: [0, 0, 0], radius: [70, 60, 70], shell: 0.2, warp: 0.3, clumping: 0.3 },
-      exc: { bias: 0.5 },
+      exc: { bias: 0.66, noiseStd: 1.2 },
     },
     {
       id: 'periphery', name: 'Periphery', color: '#4fd8ff', share: 1,

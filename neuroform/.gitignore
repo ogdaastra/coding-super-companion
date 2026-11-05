@@ -6,3 +6,4 @@ test-results/
 playwright-report/
 bench/results/*.tmp.json
 *.log
+scratch/

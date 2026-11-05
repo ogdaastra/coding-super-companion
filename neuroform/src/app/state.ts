@@ -59,7 +59,7 @@ export interface AppState {
   selection: Selection;
   neuron: NeuronDetail | null;
   hover: { neuron: number; x: number; y: number } | null;
-  panels: { left: boolean; right: boolean; minimap: boolean };
+  panels: { left: boolean; right: boolean; minimap: boolean; sheet: boolean };
   render: {
     backend: 'WebGPU' | 'WebGL2' | null;
     preference: BackendPreference;
@@ -71,6 +71,8 @@ export interface AppState {
     touring: string | null;
     /** Interface translucency (backdrop blur) disabled for speed. */
     reducedEffects: boolean;
+    /** Backends used this session, with the reason for any switch. */
+    history: string[];
   };
   plasticity: { enabled: boolean; rateScale: number; available: boolean };
   isolate: number;
@@ -136,8 +138,8 @@ export function initialState(): AppState {
     selection: { neuron: null, region: null, compare: [], synapse: null },
     neuron: null,
     hover: null,
-    panels: { left: true, right: true, minimap: true },
-    render: { backend: null, preference: 'auto', quality: 'high', adaptive: true, stats: null, error: null, flying: false, touring: null, reducedEffects: false },
+    panels: { left: true, right: true, minimap: true, sheet: false },
+    render: { backend: null, preference: 'auto', quality: 'high', adaptive: true, stats: null, error: null, flying: false, touring: null, reducedEffects: false, history: [] },
     plasticity: { enabled: false, rateScale: 1, available: false },
     isolate: -1,
     palette: false,

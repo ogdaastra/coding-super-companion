@@ -1,5 +1,10 @@
 # NEXUS
 
+> **Also in this repository: [NEUROFORM](neuroform/README.md)**, a browser-native
+> artificial brain observatory: a spiking neural network simulated in Rust/WebAssembly
+> and explored in real-time 3D (WebGPU with WebGL2 fallback). It is independent of
+> NEXUS and lives entirely in [`neuroform/`](neuroform/).
+
 **A native, GPU-accelerated command environment for AI coding agents.**
 NEXUS makes the activity of Claude Code visible, understandable and controllable. It
 renders your project as a living 3D structure, the *NEXUS CORE*, and lights it up with
