@@ -78,8 +78,8 @@ jobs:
             $shot = "$PWD/shots/windows-$backend.png"
             $appArgs = @("--backend=$backend", "--simulate", "--quality", "0", "--project", "$PWD/src", "--screenshot", $shot, "--screenshot-delay", "10000")
             $p = Start-Process -FilePath "NEXUS-windows/nexus.exe" -ArgumentList $appArgs -PassThru
-            if (-not $p.WaitForExit(120000)) { $p.Kill(); Write-Host "::warning::$backend did not exit within 120 s" }
-            Write-Host "=== $backend: exit code $($p.ExitCode), screenshot written: $(Test-Path $shot)"
+            if (-not $p.WaitForExit(120000)) { $p.Kill(); Write-Host "::warning::${backend} did not exit within 120 s" }
+            Write-Host "=== ${backend}: exit code $($p.ExitCode), screenshot written: $(Test-Path $shot)"
             if (Test-Path $log) { Get-Content $log | Select-Object -First 60 } else { Write-Host "(no nexus.log at $log)" }
           }
 
